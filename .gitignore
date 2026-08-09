@@ -1,0 +1,9 @@
+node_modules/
+out/
+dist-web/
+dist/
+*.log
+.DS_Store
+.workbuddy/
+*.tsbuildinfo
+electron.vite.config.*.mjs
