@@ -9,7 +9,7 @@
  * 滚动采用平滑插值(lerp),避免换行跳变卡顿。
  */
 import { annotScale, rowBounds, rowCount, sortedLines } from './geometry'
-import type { VLine } from './types'
+import type { MarkEvent, VLine } from './types'
 import { getAudio } from './audioPlayer'
 
 export type FollowMode = 'continuous' | 'jump'
@@ -45,7 +45,8 @@ export interface RenderData {
   leftBorder: number
   rightBorder: number
   measures: Measure[]
-  measureTimes: Record<number, number>
+  /** 对点事件序列(按时间排序;同一小节可多次出现=反复) */
+  events: MarkEvent[]
   totalDuration: number
   mode: FollowMode
   ratio: VideoRatio
@@ -88,17 +89,21 @@ export function buildMeasures(
   return out
 }
 
-export function measureAtTime(t: number, measureTimes: Record<number, number>): number | null {
-  const times = Object.entries(measureTimes)
-    .map(([n, time]) => ({ n: Number(n), time }))
-    .sort((a, b) => a.time - b.time)
-  if (times.length === 0) return null
-  let cur = times[0].n
-  for (const item of times) {
-    if (t >= item.time) cur = item.n
+/** 事件序列:返回 t 时刻正在演奏的事件(最近一个 time ≤ t);无事件返回 null */
+export function eventAtTime(t: number, events: MarkEvent[]): MarkEvent | null {
+  if (events.length === 0) return null
+  let cur: MarkEvent = events[0]
+  for (const e of events) {
+    if (t >= e.time) cur = e
     else break
   }
   return cur
+}
+
+/** 兼容入口:事件 → 当前小节编号 */
+export function measureAtTime(t: number, events: MarkEvent[]): number | null {
+  const ev = eventAtTime(t, events)
+  return ev !== null ? ev.n : null
 }
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi)
@@ -113,7 +118,7 @@ export function resetSmooth(): void {
 
 /** 渲染一帧到画布(画布尺寸 W×H)。offset 通过 lerp 平滑逼近目标,滚动连贯 */
 export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number, t: number, data: RenderData): void {
-  const cur = measureAtTime(t, data.measureTimes)
+  const cur = measureAtTime(t, data.events)
   const curM = cur !== null ? data.measures.find((m) => m.n === cur) : undefined
 
   // ---- 目标 viewport 计算 ----
@@ -255,14 +260,15 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         ctx.setLineDash([])
       }
     } else {
-      // 连续:小节内匀速光标线(颜色/粗细可自定义)
-      const times = Object.entries(data.measureTimes)
-        .map(([n, time]) => ({ n: Number(n), time }))
-        .sort((a, b) => a.time - b.time)
-      const idx = times.findIndex((x) => x.n === curM.n)
-      const start = times[Math.max(idx, 0)]?.time ?? 0
-      const end = times[Math.min(idx + 1, times.length - 1)]?.time ?? data.totalDuration
-      const prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
+      // 连续:小节内匀速光标线(颜色/粗细可自定义);按"当前事件"推进(反复段落第二遍重新走)
+      const ev = eventAtTime(t, data.events)
+      let prog = 0
+      if (ev) {
+        const idx = data.events.indexOf(ev)
+        const start = ev.time
+        const end = data.events[idx + 1]?.time ?? data.totalDuration
+        prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
+      }
       const cursorX = bx + bw * prog
       ctx.strokeStyle = data.cursorColor
       ctx.lineWidth = data.cursorWidth

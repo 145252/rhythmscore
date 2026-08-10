@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ProjectFile, ScoreSource, Selected, Tool, VLine } from './types'
+import type { MarkEvent, ProjectFile, ScoreSource, Selected, Tool, VLine } from './types'
 import { mergePages, type PageImage } from './merge'
 
 let uid = 0
@@ -34,14 +34,12 @@ interface EditorState {
   waveformPeaks: number[] | null
   /** 当前选中的小节编号(1-based) */
   currentMeasure: number | null
-  /** 对点映射:小节编号 → 音频时间(秒) */
-  measureTimes: Record<number, number>
-  /** 打点基准时间:小节编号 → 首次打点时间(秒),用于显示微调偏移 */
-  measureBaseTimes: Record<number, number>
-  /** 对点模式开关:开启后点击曲谱小节 = 把当前播放时间记到该小节 */
+  /** 对点事件序列(按时间排序;同一小节可多次出现 = 反复) */
+  markEvents: MarkEvent[]
+  /** 对点模式开关:开启后点击曲谱小节 = 给该小节追加一个时间点(反复可多点几次) */
   marking: boolean
-  /** 对点模式下"下一个待打点的小节"(回车打点目标,曲谱上橙色虚线框) */
-  markingTarget: number | null
+  /** 对点模式下"下一个待打点的小节"(打点后自动+1,曲谱上橙色虚线框提示) */
+  markingNext: number | null
 
   setScore: (s: ScoreSource | null) => void
   /** 设置多页曲谱:按页顺序合并为长图;页变化会清空标注(提示重新分割) */
@@ -75,10 +73,22 @@ interface EditorState {
   setAudioDuration: (d: number) => void
   setWaveform: (peaks: number[] | null) => void
   selectMeasure: (n: number | null) => void
-  setMeasureTime: (n: number, t: number) => void
-  setMeasureBase: (n: number, t: number) => void
+  /** 追加对点事件(同一小节可多次打点=反复);按时间排序 */
+  addMarkEvent: (n: number, time: number) => void
+  /** 微调当前小节最近一个事件的时间(±delta) */
+  adjustMarkEvent: (n: number, delta: number) => void
+  /** 按事件索引微调时间(±delta);排序后索引会变化,调用方先 indexOf 定位 */
+  adjustMarkEventByIndex: (idx: number, delta: number) => void
+  /** 修改某事件的演奏序号(编号):该事件及之后所有事件序号顺延为 newN, newN+1…(不影响播放的物理小节引用) */
+  setMarkEventNumber: (idx: number, newN: number) => void
+  /** 直接设置某个事件的时间(秒) */
+  setMarkEventTime: (idx: number, time: number) => void
+  /** 删除某个对点事件(误打点修正);删除后所有事件编号重新连续匹配 */
+  removeMarkEvent: (idx: number) => void
+  /** 清除所有对点 */
+  clearMarkEvents: () => void
   setMarking: (b: boolean) => void
-  setMarkingTarget: (n: number | null) => void
+  setMarkingNext: (n: number | null) => void
 
   // ---------- 视频导出:光标线设置(连续模式) ----------
   cursorColor: string
@@ -127,10 +137,9 @@ export const useStore = create<EditorState>((set, get) => ({
   currentTime: 0,
   waveformPeaks: null,
   currentMeasure: null,
-  measureTimes: {},
-  measureBaseTimes: {},
+  markEvents: [],
   marking: false,
-  markingTarget: null,
+  markingNext: null,
 
   cursorColor: '#E24B4A',
   cursorWidth: 5,
@@ -161,9 +170,9 @@ export const useStore = create<EditorState>((set, get) => ({
       hLines: [],
       vLines: [],
       selected: null,
-      measureTimes: {},
-      measureBaseTimes: {},
+      markEvents: [],
       currentMeasure: null,
+      markingNext: null,
       scale: 1,
       dirty: true
     })
@@ -240,8 +249,7 @@ export const useStore = create<EditorState>((set, get) => ({
       isPlaying: false,
       currentTime: 0,
       waveformPeaks: null,
-      measureTimes: {},
-      measureBaseTimes: {},
+      markEvents: [],
       currentMeasure: null
     }),
   setPlaying: (b) => set({ isPlaying: b }),
@@ -249,10 +257,63 @@ export const useStore = create<EditorState>((set, get) => ({
   setAudioDuration: (d) => set({ audioDuration: d }),
   setWaveform: (peaks) => set({ waveformPeaks: peaks }),
   selectMeasure: (n) => set({ currentMeasure: n }),
-  setMeasureTime: (n, t) => set({ measureTimes: { ...get().measureTimes, [n]: t }, dirty: true }),
-  setMeasureBase: (n, t) => set({ measureBaseTimes: { ...get().measureBaseTimes, [n]: t } }),
+  addMarkEvent: (n, time) => {
+    const evs = [...get().markEvents, { n, time, base: time }]
+    evs.sort((a, b) => a.time - b.time)
+    // 打点后预选框自动指向下一个小节(物理顺序)
+    set({ markEvents: evs, markingNext: n + 1, dirty: true })
+  },
+  adjustMarkEvent: (n, delta) => {
+    const evs = [...get().markEvents]
+    let idx = -1
+    for (let i = evs.length - 1; i >= 0; i--) {
+      if (evs[i].n === n) {
+        idx = i
+        break
+      }
+    }
+    if (idx < 0) return
+    const limit = get().audioDuration > 0 ? get().audioDuration : Number.MAX_SAFE_INTEGER
+    evs[idx] = { ...evs[idx], time: Math.min(Math.max(evs[idx].time + delta, 0), limit) }
+    evs.sort((a, b) => a.time - b.time)
+    set({ markEvents: evs, dirty: true })
+  },
   setMarking: (b) => set({ marking: b }),
-  setMarkingTarget: (n) => set({ markingTarget: n }),
+  setMarkingNext: (n) => set({ markingNext: n }),
+  clearMarkEvents: () => set({ markEvents: [], currentMeasure: null, markingNext: null, dirty: true }),
+  adjustMarkEventByIndex: (idx, delta) => {
+    const evs = [...get().markEvents]
+    if (idx < 0 || idx >= evs.length) return
+    const limit = get().audioDuration > 0 ? get().audioDuration : Number.MAX_SAFE_INTEGER
+    evs[idx] = { ...evs[idx], time: Math.min(Math.max(evs[idx].time + delta, 0), limit) }
+    evs.sort((a, b) => a.time - b.time)
+    set({ markEvents: evs, dirty: true })
+  },
+  setMarkEventNumber: (idx, newN) => {
+    const evs = [...get().markEvents]
+    if (idx < 0 || idx >= evs.length || !Number.isFinite(newN) || newN < 1) return
+    // 该事件及之后所有事件的演奏序号顺延为 newN, newN+1…(不改变物理小节引用,播放仍按物理小节跳转)
+    for (let j = idx; j < evs.length; j++) {
+      evs[j] = { ...evs[j], label: newN + (j - idx) }
+    }
+    set({ markEvents: evs, dirty: true })
+  },
+  setMarkEventTime: (idx, time) => {
+    const evs = [...get().markEvents]
+    if (idx < 0 || idx >= evs.length) return
+    const limit = get().audioDuration > 0 ? get().audioDuration : Number.MAX_SAFE_INTEGER
+    evs[idx] = { ...evs[idx], time: Math.min(Math.max(time, 0), limit) }
+    evs.sort((a, b) => a.time - b.time)
+    set({ markEvents: evs, dirty: true })
+  },
+  removeMarkEvent: (idx) => {
+    const evs = [...get().markEvents]
+    if (idx < 0 || idx >= evs.length) return
+    evs.splice(idx, 1)
+    // 删除后重新连续编号:清除自定义序号,按 1..N 自动匹配
+    const renumbered = evs.map((e) => ({ ...e, label: undefined }))
+    set({ markEvents: renumbered, dirty: true })
+  },
 
   setCursorColor: (c) => set({ cursorColor: c }),
   setCursorWidth: (w) => set({ cursorWidth: w }),
@@ -272,7 +333,7 @@ export const useStore = create<EditorState>((set, get) => ({
       scorePages: s.scorePages,
       hLines: s.hLines,
       vLines: s.vLines,
-      measureTimes: Object.keys(s.measureTimes).length ? s.measureTimes : undefined,
+      markEvents: s.markEvents.length ? s.markEvents : undefined,
       measureLabel: Object.keys(s.measureLabel).length ? s.measureLabel : undefined,
       audio:
         s.audioDataUrl && s.audioName
@@ -290,8 +351,10 @@ export const useStore = create<EditorState>((set, get) => ({
       selected: null,
       dirty: false,
       scale: 1,
-      measureTimes: p.measureTimes ?? {},
-      measureBaseTimes: p.measureTimes ?? {},
+      // 事件序列:新格式优先;旧格式(measureTimes)自动转换
+      markEvents: p.markEvents ?? Object.entries(p.measureTimes ?? {})
+        .map(([n, t]) => ({ n: Number(n), time: t, base: t }))
+        .sort((a, b) => a.time - b.time),
       measureLabel: p.measureLabel ?? {},
       // 恢复音频(打开后自动加载,无需重新导入)
       audioName: p.audio?.name ?? null,
@@ -302,7 +365,7 @@ export const useStore = create<EditorState>((set, get) => ({
       waveformPeaks: null,
       currentMeasure: null,
       marking: false,
-      markingTarget: null
+      markingNext: null
     }),
   setProjectName: (n) => set({ projectName: n }),
   markSaved: () => set({ dirty: false }),
@@ -323,10 +386,9 @@ export const useStore = create<EditorState>((set, get) => ({
       currentTime: 0,
       waveformPeaks: null,
       currentMeasure: null,
-      measureTimes: {},
-      measureBaseTimes: {},
+      markEvents: [],
       measureLabel: {},
       marking: false,
-      markingTarget: null
+      markingNext: null
     })
 }))

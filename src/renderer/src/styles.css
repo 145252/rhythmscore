@@ -936,6 +936,91 @@ body {
   padding-right: 4px;
 }
 
+/* 对点事件面板 */
+.event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.25));
+  border: 1px solid rgba(255, 255, 255, 0.65);
+}
+
+.event-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: rgba(55, 138, 221, 0.14);
+  border: 1px solid rgba(55, 138, 221, 0.55);
+  color: #0c447c;
+  font-size: 12px;
+  font-weight: 600;
+  flex: none;
+}
+
+.event-time {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.event-input {
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid rgba(55, 138, 221, 0.4);
+  background: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  padding: 0 6px;
+  outline: none;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-input.num {
+  width: 52px;
+  font-weight: 600;
+  color: #0c447c;
+}
+
+.event-input.time {
+  flex: 1;
+  min-width: 0;
+}
+
+.event-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.15);
+}
+
+.event-row .btn.icon {
+  width: 24px;
+  height: 24px;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.event-del {
+  color: #c0392b;
+  flex: none;
+}
+
+.event-del:hover {
+  background: rgba(192, 57, 43, 0.12);
+}
+
 /* ---------- 音频面板 ---------- */
 .wave-wrap {
   position: relative;

@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, FileUp, Layers, Maximize2, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileUp, Layers, Maximize2, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { useStore } from '../store'
 import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, annotScale } from '../geometry'
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
-import { buildMeasures, measureAtTime } from '../videoExport'
+import { buildMeasures, eventAtTime, measureAtTime } from '../videoExport'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
@@ -96,7 +96,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   const selected = useStore((s) => s.selected)
   const scale = useStore((s) => s.scale)
   const currentMeasure = useStore((s) => s.currentMeasure)
-  const measureTimes = useStore((s) => s.measureTimes)
+  const markEvents = useStore((s) => s.markEvents)
 
   const setScore = useStore((s) => s.setScore)
   const addHLine = useStore((s) => s.addHLine)
@@ -107,12 +107,9 @@ export default function ScoreCanvas(): React.JSX.Element {
   const setSelected = useStore((s) => s.setSelected)
   const setScale = useStore((s) => s.setScale)
   const selectMeasure = useStore((s) => s.selectMeasure)
-  const setMeasureTime = useStore((s) => s.setMeasureTime)
-  const setMeasureBase = useStore((s) => s.setMeasureBase)
-  const setMarkingTarget = useStore((s) => s.setMarkingTarget)
-  const measureBaseTimes = useStore((s) => s.measureBaseTimes)
+  const addMarkEvent = useStore((s) => s.addMarkEvent)
   const marking = useStore((s) => s.marking)
-  const markingTarget = useStore((s) => s.markingTarget)
+  const markingNext = useStore((s) => s.markingNext)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
   const jumpOpacity = useStore((s) => s.jumpOpacity)
@@ -120,7 +117,6 @@ export default function ScoreCanvas(): React.JSX.Element {
   const nextOpacity = useStore((s) => s.nextOpacity)
   const snapEnabled = useStore((s) => s.snapEnabled)
   const measureLabel = useStore((s) => s.measureLabel)
-  const setMeasureLabel = useStore((s) => s.setMeasureLabel)
   const scorePages = useStore((s) => s.scorePages)
   const reorderScorePage = useStore((s) => s.reorderScorePage)
   const removeScorePage = useStore((s) => s.removeScorePage)
@@ -136,10 +132,13 @@ export default function ScoreCanvas(): React.JSX.Element {
   /** 识别出的五线谱小节线位置(每行一个列表),吸附用 */
   const [detectLines, setDetectLines] = useState<number[][] | null>(null)
   /** 正在修改编号的小节 */
-  const [editNumber, setEditNumber] = useState<Measure | null>(null)
-  const editInputRef = useRef<HTMLInputElement>(null)
+  const [editEvents, setEditEvents] = useState<Measure | null>(null)
   /** 页面顺序弹窗 */
   const [pageOrderOpen, setPageOrderOpen] = useState(false)
+  const adjustMarkEventByIndex = useStore((s) => s.adjustMarkEventByIndex)
+  const setMarkEventNumber = useStore((s) => s.setMarkEventNumber)
+  const setMarkEventTime = useStore((s) => s.setMarkEventTime)
+  const removeMarkEvent = useStore((s) => s.removeMarkEvent)
 
   // ---------- 导入(多文件/追加/替换) ----------
   const [askPdf, setAskPdf] = useState<PageImage[] | null>(null)
@@ -234,9 +233,9 @@ export default function ScoreCanvas(): React.JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [selected, removeLine])
 
-  // 播放预览光标线:对点完成后,软件内实时显示光标(颜色/粗细与视频导出一致)
+  // 播放预览光标线:对点完成后,软件内实时显示光标(颜色/粗细与视频导出一致;按事件序列=反复自动跳回)
   useEffect(() => {
-    if (!score || Object.keys(measureTimes).length === 0) return
+    if (!score || markEvents.length === 0) return
     const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
     let raf = 0
     const loop = (): void => {
@@ -249,15 +248,14 @@ export default function ScoreCanvas(): React.JSX.Element {
         return
       }
       const t = getAudio().currentTime
-      const cur = measureAtTime(t, st.measureTimes)
+      const ev = eventAtTime(t, st.markEvents)
+      const cur = ev !== null ? ev.n : null
       const m = cur !== null ? measuresList.find((mm) => mm.n === cur) : undefined
-      if (el && m && st.score) {
-        const times = Object.entries(st.measureTimes)
-          .map(([n, time]) => ({ n: Number(n), time }))
-          .sort((a, b) => a.time - b.time)
-        const idx = times.findIndex((x) => x.n === cur)
-        const start = times[Math.max(idx, 0)]?.time ?? 0
-        const end = times[Math.min(idx + 1, times.length - 1)]?.time ?? st.audioDuration
+      if (el && m && ev && st.score) {
+        // 按"当前事件"计算小节内进度(反复段落第二遍从该小节起点重新走)
+        const idx = st.markEvents.indexOf(ev)
+        const start = ev.time
+        const end = st.markEvents[idx + 1]?.time ?? st.audioDuration
         const prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
         const cx = m.x0 + (m.x1 - m.x0) * prog
         el.setAttribute('x1', String(cx))
@@ -275,7 +273,7 @@ export default function ScoreCanvas(): React.JSX.Element {
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [score, hLines, vLines, measureTimes])
+  }, [score, hLines, vLines, markEvents])
 
   // ---------- 识别五线谱小节线(吸附目标;导入曲谱/画横线时重检测) ----------
   useEffect(() => {
@@ -403,23 +401,22 @@ export default function ScoreCanvas(): React.JSX.Element {
         setSelected({ type: 'h', id: String(hv) })
         setDrag({ kind: 'moveH', sortedIdx: hv, sy: e.clientY, origY: sortedLines(hLines)[hv] })
       } else {
-        // 空白处:对点模式下 = 打点;否则选中小节(若已对点则跳转音频)
+        // 空白处:对点模式下 = 打点(可重复=反复);否则选中小节(已对点则跳转音频)
         setSelected(null)
         const n = measureNumberAt(x, y)
         if (n !== null) {
           selectMeasure(n)
           const st = useStore.getState()
           if (st.marking) {
-            // 对点:把当前播放时间记到该小节,同时记为打点基准;目标小节前进
+            // 对点:把当前播放时间追加为该小节的一个事件(同一小节可多点几次=反复段落)
             const now = getAudio().currentTime
-            setMeasureTime(n, now)
-            setMeasureBase(n, now)
-            setMarkingTarget(n + 1)
+            addMarkEvent(n, now)
           } else {
-            const t = st.measureTimes[n]
-            if (t !== undefined) {
+            // 跳转到该小节最近一次演奏的时间
+            const evs = st.markEvents.filter((e) => e.n === n)
+            if (evs.length) {
               const a = getAudio()
-              a.currentTime = t
+              a.currentTime = evs[evs.length - 1].time
             }
           }
         }
@@ -506,26 +503,6 @@ export default function ScoreCanvas(): React.JSX.Element {
   const cursor = tool === 'select' ? 'default' : tool === 'hline' ? 'row-resize' : tool === 'vline' ? 'col-resize' : 'default'
 
   /** 确认修改编号:输入新编号,该小节及之后重新连续编号(仅显示标签,不影响对点数据) */
-  const applyRenumber = (m: Measure, newStart: number): void => {
-    const idx = measures.findIndex((mm) => mm.n === m.n)
-    if (idx < 0) return
-    const next: Record<number, number> = { ...measureLabel }
-    for (let j = idx; j < measures.length; j++) {
-      next[measures[j].n] = newStart + (j - idx)
-    }
-    setMeasureLabel(next)
-    setEditNumber(null)
-  }
-
-  const confirmEditNumber = (): void => {
-    if (!editNumber) return
-    const v = parseInt(editInputRef.current?.value ?? '', 10)
-    if (!Number.isFinite(v) || v < 1) {
-      window.alert('请输入 ≥1 的整数')
-      return
-    }
-    applyRenumber(editNumber, v)
-  }
 
   /** 标注缩放系数:线宽/字号/标记尺寸随曲谱宽度同步放大 */
   const k = score ? annotScale(score.width) : 1
@@ -596,7 +573,7 @@ export default function ScoreCanvas(): React.JSX.Element {
           const { x, y } = toImage(e)
           const n = measureNumberAt(x, y)
           const m = n !== null ? measures.find((mm) => mm.n === n) : undefined
-          if (m) setEditNumber(m)
+          if (m) setEditEvents(m)
         }}
         onDrop={(e) => {
           e.preventDefault()
@@ -675,14 +652,14 @@ export default function ScoreCanvas(): React.JSX.Element {
                         rx={3 * k}
                       />
                     ))}
-                {/* 对点目标小节(回车打点的目标,橙色虚线框) */}
+                {/* 对点预选框:下一个待打点的小节(橙色虚线) */}
                 {marking &&
-                  markingTarget !== null &&
+                  markingNext !== null &&
                   measures
-                    .filter((m) => m.n === markingTarget)
+                    .filter((m) => m.n === markingNext)
                     .map((m) => (
                       <rect
-                        key={`tgt${m.n}`}
+                        key={`next${m.n}`}
                         x={m.x0}
                         y={m.top}
                         width={m.x1 - m.x0}
@@ -771,20 +748,25 @@ export default function ScoreCanvas(): React.JSX.Element {
                     )
                   })()
                 )}
-                {/* 小节编号(选框内左上角) + 对点时间(选框内居中) */}
-                {measures.map((m) => {
-                  const t = measureTimes[m.n]
-                  const base = measureBaseTimes[m.n]
-                  const delta = base !== undefined ? Math.round((t - base) * 100) / 100 : 0
+                {/* 对点编号框 + 时间戳:每个对点事件一个编号框,编号=演奏序号(反复的小节出现多个框) */}
+                {markEvents.map((e, idx) => {
+                  const m = measures.find((mm) => mm.n === e.n)
+                  if (!m) return null
+                  // 编号 = 演奏序号(第几个演奏的事件;可自定义 label 覆盖)
+                  const label = e.label ?? idx + 1
+                  const inRow = markEvents.filter((x, j) => x.n === e.n && j <= idx).length - 1
+                  const total = markEvents.filter((x) => x.n === e.n).length
+                  const slot = m.x1 - m.x0
+                  const cx = m.x0 + ((inRow + 0.5) / total) * slot
+                  const delta = Math.round((e.time - e.base) * 100) / 100
                   const offsetStr =
-                    base !== undefined && Math.abs(delta) >= 0.005
+                    Math.abs(delta) >= 0.005
                       ? ` (${delta > 0 ? '+' : ''}${delta.toFixed(2)}s)`
                       : ''
-                  const midX = (m.x0 + m.x1) / 2
                   return (
-                    <g key={`m${m.n}`}>
+                    <g key={`ev${idx}`}>
                       <rect
-                        x={m.x0 + 3 * k}
+                        x={cx - 11 * k}
                         y={m.top + 3 * k}
                         width={22 * k}
                         height={17 * k}
@@ -794,33 +776,31 @@ export default function ScoreCanvas(): React.JSX.Element {
                         strokeWidth={0.8 * k}
                       />
                       <text
-                        x={m.x0 + 14 * k}
+                        x={cx}
                         y={m.top + 17 * k}
                         textAnchor="middle"
                         fontSize={13 * k}
                         fontWeight={500}
                         fill="#0C447C"
                         cursor="pointer"
-                        onMouseDown={(e) => e.stopPropagation()}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setEditNumber(m)
+                        onMouseDown={(ev2) => ev2.stopPropagation()}
+                        onClick={(ev2) => {
+                          ev2.stopPropagation()
+                          setEditEvents(m)
                         }}
                       >
-                        {measureLabel[m.n] ?? m.n}
+                        {label}
                       </text>
-                      {t !== undefined && (
-                        <text
-                          x={midX}
-                          y={m.bottom - 3 * k}
-                          textAnchor="middle"
-                          fontSize={11 * k}
-                          fill="#854F0B"
-                        >
-                          {formatTimeShort(t)}
-                          {offsetStr}
-                        </text>
-                      )}
+                      <text
+                        x={cx}
+                        y={m.bottom - 3 * k}
+                        textAnchor="middle"
+                        fontSize={11 * k}
+                        fill="#854F0B"
+                      >
+                        {formatTimeShort(e.time)}
+                        {offsetStr}
+                      </text>
                     </g>
                   )
                 })}
@@ -901,32 +881,77 @@ export default function ScoreCanvas(): React.JSX.Element {
         </div>
       )}
 
-      {/* 修改小节编号弹窗 */}
-      {editNumber && (
-        <div className="modal-mask" onClick={() => setEditNumber(null)}>
+      {/* 对点事件面板(右键小节/点击编号):每个演奏事件可直接编辑编号与时间 */}
+      {editEvents && (
+        <div className="modal-mask" onClick={() => setEditEvents(null)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h4>修改小节编号</h4>
-            <p>
-              当前编号「{measureLabel[editNumber.n] ?? editNumber.n}」。输入新编号,该小节及之后将按新编号重新连续排列:
-            </p>
-            <input
-              ref={editInputRef}
-              className="modal-input"
-              type="number"
-              min={1}
-              defaultValue={measureLabel[editNumber.n] ?? editNumber.n}
-              autoFocus
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') confirmEditNumber()
-                if (e.key === 'Escape') setEditNumber(null)
-              }}
-            />
+            <h4>小节 {measureLabel[editEvents.n] ?? editEvents.n} · 演奏事件</h4>
+            <p>编号与时间可直接编辑(回车/失焦生效)。反复段落会列出多个事件。</p>
+            <div className="event-list">
+              {markEvents.map((e, i) =>
+                e.n === editEvents.n ? (
+                  <div className="event-row" key={`ev${i}`}>
+                    <button
+                      className="btn icon event-del"
+                      title="删除该演奏事件(误打点修正)"
+                      onClick={() => removeMarkEvent(markEvents.indexOf(e))}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                    <input
+                      key={`num-${i}-${e.label ?? i + 1}`}
+                      className="event-input num"
+                      type="number"
+                      min={1}
+                      defaultValue={e.label ?? i + 1}
+                      title="演奏序号(修改后该事件及之后顺延)"
+                      onBlur={(ev2) => {
+                        const v = parseInt(ev2.target.value, 10)
+                        if (Number.isFinite(v) && v >= 1) {
+                          setMarkEventNumber(markEvents.indexOf(e), v)
+                        }
+                      }}
+                      onKeyDown={(ev2) => {
+                        if (ev2.key === 'Enter') ev2.currentTarget.blur()
+                      }}
+                    />
+                    <input
+                      key={`time-${i}-${e.time.toFixed(3)}`}
+                      className="event-input time"
+                      type="text"
+                      defaultValue={formatTimeShort(e.time)}
+                      title="时间(可输入 秒 或 分:秒)"
+                      onBlur={(ev2) => {
+                        const v = parseTimeStr(ev2.target.value)
+                        if (v !== null) {
+                          setMarkEventTime(markEvents.indexOf(e), v)
+                        }
+                      }}
+                      onKeyDown={(ev2) => {
+                        if (ev2.key === 'Enter') ev2.currentTarget.blur()
+                      }}
+                    />
+                    <button
+                      className="btn icon"
+                      title="减少 0.05 秒"
+                      onClick={() => adjustMarkEventByIndex(markEvents.indexOf(e), -0.05)}
+                    >
+                      −
+                    </button>
+                    <button
+                      className="btn icon"
+                      title="增加 0.05 秒"
+                      onClick={() => adjustMarkEventByIndex(markEvents.indexOf(e), 0.05)}
+                    >
+                      +
+                    </button>
+                  </div>
+                ) : null
+              )}
+            </div>
             <div className="modal-actions">
-              <button className="btn" onClick={() => setEditNumber(null)}>
-                取消
-              </button>
-              <button className="btn primary" onClick={confirmEditNumber}>
-                确定
+              <button className="btn primary" onClick={() => setEditEvents(null)}>
+                完成
               </button>
             </div>
           </div>
@@ -992,6 +1017,25 @@ function formatTimeShort(t: number): string {
   const m = Math.floor(t / 60)
   const s = Math.floor(t % 60)
   return `${m}:${String(s).padStart(2, '0')}`
+}
+
+/** 解析时间输入:支持「秒」(20.5) 或「分:秒」(1:05.5) */
+function parseTimeStr(s: string): number | null {
+  const str = s.trim()
+  if (!str) return null
+  const parts = str.split(':')
+  let sec: number
+  if (parts.length === 1) {
+    sec = parseFloat(parts[0])
+  } else if (parts.length === 2) {
+    const m = parseInt(parts[0], 10)
+    const ss = parseFloat(parts[1])
+    if (!Number.isFinite(m) || !Number.isFinite(ss)) return null
+    sec = m * 60 + ss
+  } else {
+    return null
+  }
+  return Number.isFinite(sec) ? sec : null
 }
 
 function base64ToUint8(b64: string): Uint8Array {

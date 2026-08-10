@@ -20,7 +20,7 @@ export default function RightPanel(): React.JSX.Element {
   const score = useStore((s) => s.score)
   const audioDataUrl = useStore((s) => s.audioDataUrl)
   const audioDuration = useStore((s) => s.audioDuration)
-  const measureTimes = useStore((s) => s.measureTimes)
+  const measureTimes = useStore((s) => s.markEvents)
   const hLines = useStore((s) => s.hLines)
   const vLines = useStore((s) => s.vLines)
   const lineWidth = useStore((s) => s.lineWidth)
@@ -50,7 +50,7 @@ export default function RightPanel(): React.JSX.Element {
   const mode = videoMode
   const setMode = setVideoMode
 
-  const markedCount = Object.keys(measureTimes).length
+  const markedCount = measureTimes.length
   const ready = !!score && !!audioDataUrl && markedCount > 0
   const busy = state === 'recording' || state === 'converting'
 
@@ -87,7 +87,7 @@ export default function RightPanel(): React.JSX.Element {
           leftBorder,
           rightBorder,
           measures,
-          measureTimes: st.measureTimes,
+          events: st.markEvents,
           totalDuration: st.audioDuration,
           mode,
           ratio,
@@ -111,16 +111,14 @@ export default function RightPanel(): React.JSX.Element {
       setState('converting')
       const webmBase64 = await blobToBase64(blob)
 
-      // 跳框模式 + 开启切片:按对点时间生成小节片段表
+      // 跳框模式 + 开启切片:按事件序列生成小节片段表(反复段落同编号多次切片)
       let splitMeasures: { index: number; start: number; end: number }[] | undefined
       if (mode === 'jump' && split) {
-        const times = Object.entries(st.measureTimes)
-          .map(([n, time]) => ({ n: Number(n), time }))
-          .sort((a, b) => a.time - b.time)
-        splitMeasures = times.map((item, i) => ({
-          index: item.n,
-          start: item.time,
-          end: i + 1 < times.length ? times[i + 1].time : st.audioDuration
+        const evs = st.markEvents
+        splitMeasures = evs.map((e, i) => ({
+          index: e.n,
+          start: e.time,
+          end: i + 1 < evs.length ? evs[i + 1].time : st.audioDuration
         }))
       }
 

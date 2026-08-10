@@ -15,8 +15,7 @@ export default function AudioPanel(): React.JSX.Element {
   const currentTime = useStore((s) => s.currentTime)
   const waveformPeaks = useStore((s) => s.waveformPeaks)
   const currentMeasure = useStore((s) => s.currentMeasure)
-  const measureTimes = useStore((s) => s.measureTimes)
-  const measureBaseTimes = useStore((s) => s.measureBaseTimes)
+  const markEvents = useStore((s) => s.markEvents)
   const marking = useStore((s) => s.marking)
 
   const setAudio = useStore((s) => s.setAudio)
@@ -26,9 +25,11 @@ export default function AudioPanel(): React.JSX.Element {
   const setAudioDuration = useStore((s) => s.setAudioDuration)
   const setWaveform = useStore((s) => s.setWaveform)
   const selectMeasure = useStore((s) => s.selectMeasure)
-  const setMeasureTime = useStore((s) => s.setMeasureTime)
+  const addMarkEvent = useStore((s) => s.addMarkEvent)
+  const adjustMarkEvent = useStore((s) => s.adjustMarkEvent)
+  const clearMarkEvents = useStore((s) => s.clearMarkEvents)
   const setMarking = useStore((s) => s.setMarking)
-  const setMarkingTarget = useStore((s) => s.setMarkingTarget)
+  const setMarkingNext = useStore((s) => s.setMarkingNext)
   const setTool = useStore((s) => s.setTool)
 
   const waveRef = useRef<HTMLCanvasElement>(null)
@@ -41,16 +42,13 @@ export default function AudioPanel(): React.JSX.Element {
     setAudio(file.name, dataUrl)
   }
 
-  /** 播放跟随:根据当前播放时间与对点表,自动高亮对应小节 */
+  /** 播放跟随:按事件序列(反复段落自动跳回),高亮当前演奏的小节 */
   const followMeasure = (t: number): void => {
     const st = useStore.getState()
-    const times = Object.entries(st.measureTimes)
-      .map(([n, time]) => ({ n: Number(n), time }))
-      .sort((a, b) => a.time - b.time)
-    if (times.length === 0) return
-    let cur = times[0].n
-    for (const item of times) {
-      if (t >= item.time) cur = item.n
+    if (st.markEvents.length === 0) return
+    let cur = st.markEvents[0].n
+    for (const e of st.markEvents) {
+      if (t >= e.time) cur = e.n
       else break
     }
     if (cur !== st.currentMeasure) st.selectMeasure(cur)
@@ -69,26 +67,7 @@ export default function AudioPanel(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying])
 
-  // 微调对点时间:选中已对点的小节后,←/→ 方向键 ±0.05s,Shift+方向键 ±0.01s
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-      const t = e.target as HTMLElement | null
-      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
-      const st = useStore.getState()
-      const n = st.currentMeasure
-      if (n === null || st.measureTimes[n] === undefined) return
-      e.preventDefault()
-      const step = e.shiftKey ? 0.01 : 0.05
-      const delta = e.key === 'ArrowRight' ? step : -step
-      const limit = st.audioDuration > 0 ? st.audioDuration : Number.MAX_SAFE_INTEGER
-      st.setMeasureTime(n, Math.min(Math.max(st.measureTimes[n] + delta, 0), limit))
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
-  // 对点模式:回车 = 给"当前目标小节"打点并自动切到下一小节
+  // 对点模式:回车 = 给当前选中的小节追加一个时间点(反复段落可多点几次)
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Enter') return
@@ -99,11 +78,9 @@ export default function AudioPanel(): React.JSX.Element {
       e.preventDefault()
       const total = getMeasureCount(st.hLines, st.vLines, st.score.width)
       if (total <= 0) return
-      const target = Math.min(Math.max(st.markingTarget ?? 1, 1), total)
+      const n = st.currentMeasure ?? 1
       const now = getAudio().currentTime
-      st.setMeasureTime(target, now)
-      st.setMeasureBase(target, now)
-      st.setMarkingTarget(Math.min(target + 1, total))
+      st.addMarkEvent(Math.min(Math.max(n, 1), total), now)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -164,7 +141,7 @@ export default function AudioPanel(): React.JSX.Element {
   /** 跳到上一个/下一个已对点的小节起点 */
   const jumpMarked = (dir: 1 | -1): void => {
     if (!audioDataUrl) return
-    const times = Object.values(measureTimes).sort((a, b) => a - b)
+    const times = markEvents.map((e) => e.time).sort((a, b) => a - b)
     if (times.length === 0) {
       seek(currentTime + dir * 5)
       return
@@ -192,7 +169,7 @@ export default function AudioPanel(): React.JSX.Element {
   const toggleMarking = (): void => {
     const next = !marking
     setMarking(next)
-    setMarkingTarget(next ? 1 : null)
+    setMarkingNext(next ? 1 : null)
     if (next) {
       setTool('select')
       if (audioDataUrl && audio.paused) void audio.play().catch(() => undefined)
@@ -220,20 +197,20 @@ export default function AudioPanel(): React.JSX.Element {
       ctx.fillRect(i * bw, (WAVE_H - h) / 2, Math.max(1, bw - 0.5), h)
     }
 
-    // 对点标记
+    // 对点标记(每个事件一个;反复段落同编号多次出现)
     ctx.font = '10px sans-serif'
-    for (const [num, t] of Object.entries(measureTimes)) {
-      const x = (t / audioDuration) * W
+    for (const ev of markEvents) {
+      const x = (ev.time / audioDuration) * W
       ctx.fillStyle = '#BA7517'
       ctx.fillRect(x - 1, 0, 2, WAVE_H)
       ctx.fillStyle = '#633806'
-      ctx.fillText(num, Math.min(Math.max(x + 3, 0), W - 16), 11)
+      ctx.fillText(String(ev.n), Math.min(Math.max(x + 3, 0), W - 16), 11)
     }
     // 播放游标
     const cx = (currentTime / audioDuration) * W
     ctx.fillStyle = '#E24B4A'
     ctx.fillRect(cx - 0.75, 0, 1.5, WAVE_H)
-  }, [waveformPeaks, currentTime, measureTimes, audioDuration])
+  }, [waveformPeaks, currentTime, markEvents, audioDuration])
 
   const onWaveClick = (e: React.MouseEvent<HTMLCanvasElement>): void => {
     const canvas = waveRef.current
@@ -242,7 +219,7 @@ export default function AudioPanel(): React.JSX.Element {
     seek(((e.clientX - rect.left) / rect.width) * audioDuration)
   }
 
-  const markedCount = Object.keys(measureTimes).length
+  const markedCount = markEvents.length
 
   return (
     <div className="card">
@@ -333,8 +310,10 @@ export default function AudioPanel(): React.JSX.Element {
                 <span className="marking-hint">对点中 · 点击曲谱小节</span>
               ) : (
                 (() => {
-                  const t = currentMeasure !== null ? measureTimes[currentMeasure] : undefined
-                  const base = currentMeasure !== null ? measureBaseTimes[currentMeasure] : undefined
+                  // 该小节最近一次演奏的事件(反复段落显示最后一次)
+                  const evs = currentMeasure !== null ? markEvents.filter((e) => e.n === currentMeasure) : []
+                  const t = evs.length ? evs[evs.length - 1].time : undefined
+                  const base = evs.length ? evs[evs.length - 1].base : undefined
                   const delta = t !== undefined && base !== undefined ? Math.round((t - base) * 100) / 100 : 0
                   const offsetStr =
                     t !== undefined && base !== undefined && Math.abs(delta) >= 0.005
@@ -365,13 +344,26 @@ export default function AudioPanel(): React.JSX.Element {
             <button className="btn subtle" onClick={clearAudio}>
               移除音频
             </button>
-            <span className="marked-count">{markedCount} 个小节已对点</span>
+            {markedCount > 0 && (
+              <button
+                className="btn danger-text"
+                title="删除所有对点时间点"
+                onClick={() => {
+                  if (window.confirm(`确定清除全部 ${markedCount} 个对点时间点吗?`)) {
+                    clearMarkEvents()
+                  }
+                }}
+              >
+                清除对点
+              </button>
+            )}
+            <span className="marked-count">{markedCount} 个时间点</span>
           </div>
 
           <p className="hint">
             {marking
-              ? '对点模式已开启:播放音频,听到哪个小节就按「回车」(或鼠标点击曲谱对应小节),该时刻记为该小节起点,并自动切到下一小节。橙色虚线框 = 下一个待打点目标。'
-              : '对点流程:打开「对点」开关 → 自动播放 → 边听边按回车/点击小节打点。已对点小节在波形上显示橙色标记;选中后可按 ←/→ 微调 ±0.05s(Shift ±0.01s)。'}
+              ? '对点模式已开启:播放音频,听到哪个小节就「鼠标点击曲谱对应小节」(或按回车打点当前小节)。反复段落(同一小节演奏多遍)就再点一次该小节,会记上多个时间点。'
+              : '对点流程:打开「对点」开关 → 自动播放 → 听到哪个小节就点击曲谱对应小节打点(同一小节可重复打点=反复)。已对点事件在波形上显示橙色标记;选中小节后可按 ←/→ 微调 ±0.05s(Shift ±0.01s)。'}
           </p>
         </>
       )}

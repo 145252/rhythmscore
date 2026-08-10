@@ -26,6 +26,18 @@ export interface Selected {
   id: string
 }
 
+/** 对点事件:一个小节在某时刻被演奏(同一小节可多次出现 = 反复段落) */
+export interface MarkEvent {
+  /** 小节编号 */
+  n: number
+  /** 音频时间(秒) */
+  time: number
+  /** 打点基准时间(秒),用于显示微调偏移 */
+  base: number
+  /** 自定义编号(缺省 = 演奏序号) */
+  label?: number
+}
+
 /** 项目文件结构(可序列化,保存时整体 AES 加密) */
 export interface ProjectFile {
   version: 1
@@ -35,7 +47,9 @@ export interface ProjectFile {
   scorePages?: { name?: string; dataUrl: string; width: number; height: number }[]
   hLines: number[]
   vLines: VLine[]
-  /** 音频对点:小节编号 → 音频时间(秒) */
+  /** 对点事件序列(按时间排序;同一小节可多次出现=反复) */
+  markEvents?: MarkEvent[]
+  /** 兼容旧格式:小节编号 → 音频时间 */
   measureTimes?: Record<number, number>
   /** 小节自定义编号(原始编号 → 显示编号) */
   measureLabel?: Record<number, number>
