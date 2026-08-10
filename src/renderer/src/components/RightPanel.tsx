@@ -12,7 +12,7 @@ import {
 
 const RATIOS = Object.keys(RATIO_SIZES) as VideoRatio[]
 
-const CURSOR_COLORS = ['#E24B4A', '#F59E0B', '#EAB308', '#22C55E', '#3B82F6', '#8B5CF6', '#FFFFFF', '#111827']
+import ColorSwatches from './ColorSwatches'
 
 type ExportState = 'idle' | 'recording' | 'converting' | 'done' | 'error'
 
@@ -27,8 +27,10 @@ export default function RightPanel(): React.JSX.Element {
   const projectName = useStore((s) => s.projectName)
   const cursorColor = useStore((s) => s.cursorColor)
   const cursorWidth = useStore((s) => s.cursorWidth)
+  const cursorOpacity = useStore((s) => s.cursorOpacity)
   const setCursorColor = useStore((s) => s.setCursorColor)
   const setCursorWidth = useStore((s) => s.setCursorWidth)
+  const setCursorOpacity = useStore((s) => s.setCursorOpacity)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
   const jumpOpacity = useStore((s) => s.jumpOpacity)
@@ -84,6 +86,7 @@ export default function RightPanel(): React.JSX.Element {
           hLines: st.hLines,
           vLines: st.vLines,
           lineWidth: st.lineWidth,
+          markLineColor: st.markLineColor,
           leftBorder,
           rightBorder,
           measures,
@@ -94,6 +97,7 @@ export default function RightPanel(): React.JSX.Element {
           showAnnotations: false, // 导出视频保持纯净画面:不要标线/编号选框
           cursorColor,
           cursorWidth,
+          cursorOpacity,
           jumpColor,
           jumpOpacity,
           nextColor,
@@ -176,33 +180,28 @@ export default function RightPanel(): React.JSX.Element {
               <span>粗细</span>
               <input
                 type="range"
-                min={2}
-                max={16}
+                min={1}
+                max={20}
+                step={0.5}
                 value={cursorWidth}
                 onChange={(e) => setCursorWidth(Number(e.target.value))}
                 disabled={busy}
               />
-              <span className="lv">{cursorWidth}px</span>
+              <span className="lv">{cursorWidth % 1 === 0 ? cursorWidth : cursorWidth.toFixed(1)}px</span>
             </div>
-            <div className="cursor-colors">
-              {CURSOR_COLORS.map((c) => (
-                <button
-                  key={c}
-                  className={`swatch ${cursorColor === c ? 'active' : ''}`}
-                  style={{ background: c }}
-                  title={c}
-                  onClick={() => setCursorColor(c)}
-                  disabled={busy}
-                />
-              ))}
-              <label className={`swatch custom ${!CURSOR_COLORS.includes(cursorColor) ? 'active' : ''}`} title="自定义颜色">
-                <input
-                  type="color"
-                  value={CURSOR_COLORS.includes(cursorColor) ? '#E24B4A' : cursorColor}
-                  onChange={(e) => setCursorColor(e.target.value)}
-                />
-              </label>
+            <div className="cursor-width-row">
+              <span>浓度</span>
+              <input
+                type="range"
+                min={20}
+                max={100}
+                value={Math.round(cursorOpacity * 100)}
+                onChange={(e) => setCursorOpacity(Number(e.target.value) / 100)}
+                disabled={busy}
+              />
+              <span className="lv">{Math.round(cursorOpacity * 100)}%</span>
             </div>
+            <ColorSwatches value={cursorColor} onChange={setCursorColor} disabled={busy} />
           </>
         )}
 
@@ -223,25 +222,7 @@ export default function RightPanel(): React.JSX.Element {
               />
               <span className="lv">{Math.round(jumpOpacity * 100)}%</span>
             </div>
-            <div className="cursor-colors">
-              {CURSOR_COLORS.map((c) => (
-                <button
-                  key={`jc${c}`}
-                  className={`swatch ${jumpColor === c ? 'active' : ''}`}
-                  style={{ background: c }}
-                  title={c}
-                  onClick={() => setJumpColor(c)}
-                  disabled={busy}
-                />
-              ))}
-              <label className={`swatch custom ${!CURSOR_COLORS.includes(jumpColor) ? 'active' : ''}`} title="自定义颜色">
-                <input
-                  type="color"
-                  value={CURSOR_COLORS.includes(jumpColor) ? '#E24B4A' : jumpColor}
-                  onChange={(e) => setJumpColor(e.target.value)}
-                />
-              </label>
-            </div>
+            <ColorSwatches value={jumpColor} onChange={setJumpColor} disabled={busy} />
 
             <p className="sub-label">下一小节(预备)</p>
             <div className="cursor-width-row">
@@ -256,25 +237,7 @@ export default function RightPanel(): React.JSX.Element {
               />
               <span className="lv">{Math.round(nextOpacity * 100)}%</span>
             </div>
-            <div className="cursor-colors">
-              {CURSOR_COLORS.map((c) => (
-                <button
-                  key={`nc${c}`}
-                  className={`swatch ${nextColor === c ? 'active' : ''}`}
-                  style={{ background: c }}
-                  title={c}
-                  onClick={() => setNextColor(c)}
-                  disabled={busy}
-                />
-              ))}
-              <label className={`swatch custom ${!CURSOR_COLORS.includes(nextColor) ? 'active' : ''}`} title="自定义颜色">
-                <input
-                  type="color"
-                  value={CURSOR_COLORS.includes(nextColor) ? '#E24B4A' : nextColor}
-                  onChange={(e) => setNextColor(e.target.value)}
-                />
-              </label>
-            </div>
+            <ColorSwatches value={nextColor} onChange={setNextColor} disabled={busy} />
           </>
         )}
 

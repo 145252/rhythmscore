@@ -42,6 +42,8 @@ export interface RenderData {
   hLines: number[]
   vLines: VLine[]
   lineWidth: number
+  /** 标线颜色(横线/竖线/编号框统一跟随) */
+  markLineColor: string
   leftBorder: number
   rightBorder: number
   measures: Measure[]
@@ -55,6 +57,8 @@ export interface RenderData {
   /** 连续模式光标线颜色与粗细(画布像素) */
   cursorColor: string
   cursorWidth: number
+  /** 光标线浓度(0.2~1,颜色深浅) */
+  cursorOpacity: number
   /** 跳框模式高亮颜色 */
   jumpColor: string
   /** 跳框模式当前小节填充浓度(0~1) */
@@ -112,8 +116,13 @@ const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v
 let smoothX = 0
 let smoothY = 0
 let smoothInit = false
+// 跳框淡入淡出状态(切换小节时从 0 淡入)
+let jumpFade = 0
+let jumpLastN = -1
 export function resetSmooth(): void {
   smoothInit = false
+  jumpFade = 0
+  jumpLastN = -1
 }
 
 /** 渲染一帧到画布(画布尺寸 W×H)。offset 通过 lerp 平滑逼近目标,滚动连贯 */
@@ -191,7 +200,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
   // ---- 标线与编号(仅软件内显示,尺寸随分辨率缩放) ----
   if (data.showAnnotations) {
     const k = annotScale(data.scoreW)
-    ctx.strokeStyle = '#378ADD'
+    ctx.strokeStyle = data.markLineColor
     ctx.lineWidth = data.lineWidth * k
     ctx.beginPath()
     for (const y of sortedLines(data.hLines)) {
@@ -202,7 +211,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
 
     for (const v of data.vLines) {
       const [top, bottom] = v.kind === 'full' ? [0, data.scoreH] : rowBounds(data.hLines, v.row, data.scoreH)
-      ctx.strokeStyle = v.kind === 'full' ? '#185FA5' : '#378ADD'
+      ctx.strokeStyle = data.markLineColor
       ctx.lineWidth = (v.kind === 'full' ? data.lineWidth + 1 : data.lineWidth) * k
       ctx.beginPath()
       ctx.moveTo(tx(v.x), ty(top))
@@ -217,13 +226,13 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
       const bx = tx(m.x0 + 3 * k)
       const by = ty(m.top + 3 * k)
       if (bx < -40 || bx > W + 40 || by < -40 || by > H + 40) continue
-      ctx.fillStyle = 'rgba(55,138,221,0.14)'
-      ctx.strokeStyle = 'rgba(55,138,221,0.55)'
+      ctx.fillStyle = hexToRgba(data.markLineColor, 0.14)
+      ctx.strokeStyle = hexToRgba(data.markLineColor, 0.55)
       ctx.lineWidth = 1
       roundRect(ctx, bx, by, 22 * k, 17 * k, 3 * k)
       ctx.fill()
       ctx.stroke()
-      ctx.fillStyle = '#0C447C'
+      ctx.fillStyle = data.markLineColor
       ctx.fillText(String(m.n), tx(m.x0 + 14 * k), ty(m.top + 12 * k))
     }
   }
@@ -235,32 +244,62 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
     const bw = (curM.x1 - curM.x0) * scale
     const bh = (curM.bottom - curM.top) * scale
     if (data.mode === 'jump') {
-      // 跳框:当前小节主色高亮 + 下一小节淡色预备提示(浓度可调)
-      const op = clamp(data.jumpOpacity, 0.02, 0.9)
-      ctx.fillStyle = hexToRgba(data.jumpColor, op)
-      ctx.strokeStyle = hexToRgba(data.jumpColor, 0.95)
-      ctx.lineWidth = 4
-      roundRect(ctx, bx, by, bw, bh, 4)
+      // 跳框:发光玻璃框(外发光+上浅下深渐变填充+顶部高光),切换小节平滑淡入
+      if (jumpLastN !== curM.n) {
+        jumpLastN = curM.n
+        jumpFade = 0
+      }
+      jumpFade = Math.min(1, jumpFade + 0.07)
+      const fade = 1 - (1 - jumpFade) * (1 - jumpFade)
+      const op = clamp(data.jumpOpacity, 0.02, 0.9) * fade
+
+      // 外发光(细)
+      ctx.lineCap = 'round'
+      ctx.strokeStyle = hexToRgba(data.jumpColor, 0.2 * fade)
+      ctx.lineWidth = 7
+      roundRect(ctx, bx, by, bw, bh, 6)
+      ctx.stroke()
+
+      // 渐变填充 + 主描边(细)
+      const g = ctx.createLinearGradient(0, by, 0, by + bh)
+      g.addColorStop(0, hexToRgba(data.jumpColor, Math.min(op * 1.4, 0.75)))
+      g.addColorStop(1, hexToRgba(data.jumpColor, op * 0.5))
+      ctx.fillStyle = g
+      ctx.strokeStyle = hexToRgba(data.jumpColor, 0.9 * fade)
+      ctx.lineWidth = 1.6
+      roundRect(ctx, bx, by, bw, bh, 6)
       ctx.fill()
       ctx.stroke()
-      // 下一小节(预备):独立颜色与浓度 + 虚线边框
+
+      // 顶部高光
+      if (bw > 20) {
+        ctx.strokeStyle = hexToRgba(data.jumpColor, 0.4 * fade)
+        ctx.lineWidth = 1.2
+        ctx.beginPath()
+        ctx.moveTo(bx + 8, by + 4)
+        ctx.lineTo(bx + bw - 8, by + 4)
+        ctx.stroke()
+      }
+
+      // 下一小节(预备):淡色虚线描边(跟随淡入)
       const next = data.measures.find((m) => m.n === curM.n + 1)
       if (next) {
         const nx = tx(next.x0)
         const ny = ty(next.top)
         const nw = (next.x1 - next.x0) * scale
         const nh = (next.bottom - next.top) * scale
-        ctx.fillStyle = hexToRgba(data.nextColor, clamp(data.nextOpacity, 0.02, 0.9))
-        ctx.strokeStyle = hexToRgba(data.nextColor, 0.55)
+        ctx.fillStyle = hexToRgba(data.nextColor, clamp(data.nextOpacity, 0.02, 0.9) * fade * 0.55)
+        ctx.strokeStyle = hexToRgba(data.nextColor, 0.5 * fade)
         ctx.lineWidth = 2
         ctx.setLineDash([12, 9])
-        roundRect(ctx, nx, ny, nw, nh, 4)
+        roundRect(ctx, nx, ny, nw, nh, 6)
         ctx.fill()
         ctx.stroke()
         ctx.setLineDash([])
       }
+      ctx.lineCap = 'butt'
     } else {
-      // 连续:小节内匀速光标线(颜色/粗细可自定义);按"当前事件"推进(反复段落第二遍重新走)
+      // 连续:辉光光标线(轻光晕+纵向渐隐);按"当前事件"推进(反复段落第二遍重新走)
       const ev = eventAtTime(t, data.events)
       let prog = 0
       if (ev) {
@@ -270,12 +309,23 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
       }
       const cursorX = bx + bw * prog
-      ctx.strokeStyle = data.cursorColor
+      const op = clamp(data.cursorOpacity, 0.2, 1)
+      ctx.lineCap = 'round'
+      // 轻光晕(弱化)
+      ctx.strokeStyle = hexToRgba(data.cursorColor, 0.07 * op)
+      ctx.lineWidth = data.cursorWidth * 2.2
+      ctx.beginPath()
+      ctx.moveTo(cursorX, by)
+      ctx.lineTo(cursorX, by + bh)
+      ctx.stroke()
+      // 主纯色线(无渐变;浓度=不透明度,100% 实色)
+      ctx.strokeStyle = hexToRgba(data.cursorColor, op)
       ctx.lineWidth = data.cursorWidth
       ctx.beginPath()
       ctx.moveTo(cursorX, by)
       ctx.lineTo(cursorX, by + bh)
       ctx.stroke()
+      ctx.lineCap = 'butt'
     }
   }
 

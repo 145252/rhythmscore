@@ -114,14 +114,24 @@ function decryptProject(data: string): string | null {
 }
 
 // ---------- IPC: 项目保存 / 打开 ----------
+/** 记住最近一次保存/打开的路径:同名再保存时直接覆盖,不弹"是否覆盖"对话框 */
+let lastSavePath: string | null = null
+
 ipcMain.handle('project:save', async (_e, defaultName: string, content: string) => {
+  const target = defaultName.endsWith('.dscore') ? defaultName : `${defaultName}.dscore`
+  // 上次保存/打开的路径文件名与当前项目名一致 → 直接覆盖保存
+  if (lastSavePath && basename(lastSavePath).replace(/\.dscore(\.json)?$/i, '') === defaultName) {
+    await writeFile(lastSavePath, encryptProject(content), 'utf-8')
+    return lastSavePath
+  }
   const r = await dialog.showSaveDialog({
     title: '保存项目',
-    defaultPath: defaultName.endsWith('.dscore') ? defaultName : `${defaultName}.dscore`,
+    defaultPath: target,
     filters: [{ name: '动态曲谱项目', extensions: ['dscore'] }]
   })
   if (r.canceled || !r.filePath) return null
   await writeFile(r.filePath, encryptProject(content), 'utf-8')
+  lastSavePath = r.filePath
   return r.filePath
 })
 
@@ -137,6 +147,8 @@ ipcMain.handle('project:open', async () => {
   const raw = await readFile(r.filePaths[0], 'utf-8')
   // 优先解密(新格式);解密失败则按旧明文 JSON 兼容
   const plain = decryptProject(raw)
+  // 记住打开路径:之后直接点保存 = 覆盖保存到原文件
+  lastSavePath = r.filePaths[0]
   return { path: r.filePaths[0], content: plain !== null ? plain : raw }
 })
 

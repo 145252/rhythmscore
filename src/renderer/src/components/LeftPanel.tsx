@@ -2,6 +2,7 @@ import React from 'react'
 import { AlignVerticalJustifyCenter, Hand, Minus, MousePointer2, Trash2 } from 'lucide-react'
 import { useStore } from '../store'
 import AudioPanel from './AudioPanel'
+import ColorSwatches from './ColorSwatches'
 
 const TOOL_HINTS: Record<string, string> = {
   hline: '横线模式:点击每一行谱表的上下边界。横线会自动截断在左右边框竖线之间',
@@ -19,6 +20,8 @@ export default function LeftPanel(): React.JSX.Element {
   const clearVLines = useStore((s) => s.clearVLines)
   const snapEnabled = useStore((s) => s.snapEnabled)
   const setSnapEnabled = useStore((s) => s.setSnapEnabled)
+  const markLineColor = useStore((s) => s.markLineColor)
+  const setMarkLineColor = useStore((s) => s.setMarkLineColor)
 
   const tools = [
     { id: 'hline' as const, icon: <Minus size={16} />, label: '横线' },
@@ -57,6 +60,9 @@ export default function LeftPanel(): React.JSX.Element {
           />
           <span className="lv">{lineWidth}px</span>
         </div>
+
+        <p className="label">标线颜色</p>
+        <ColorSwatches value={markLineColor} onChange={setMarkLineColor} />
 
         <label className="marking-toggle">
           <span>自动吸附</span>

@@ -110,6 +110,9 @@ export default function ScoreCanvas(): React.JSX.Element {
   const addMarkEvent = useStore((s) => s.addMarkEvent)
   const marking = useStore((s) => s.marking)
   const markingNext = useStore((s) => s.markingNext)
+  const cursorColor = useStore((s) => s.cursorColor)
+  const cursorOpacity = useStore((s) => s.cursorOpacity)
+  const markLineColor = useStore((s) => s.markLineColor)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
   const jumpOpacity = useStore((s) => s.jumpOpacity)
@@ -125,6 +128,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   const imgRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cursorLineRef = useRef<SVGLineElement>(null)
+  const cursorGlowRef = useRef<SVGLineElement>(null)
   const [drag, setDrag] = useState<DragState>(null)
   const [dragOver, setDragOver] = useState(false)
   /** 鼠标悬停位置(图片坐标),用于虚拟预览线 */
@@ -233,17 +237,21 @@ export default function ScoreCanvas(): React.JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [selected, removeLine])
 
-  // 播放预览光标线:对点完成后,软件内实时显示光标(颜色/粗细与视频导出一致;按事件序列=反复自动跳回)
+  // 播放预览光标线:对点完成后,软件内实时显示辉光光标(光晕+渐变线+菱形指针;按事件序列=反复自动跳回)
   useEffect(() => {
     if (!score || markEvents.length === 0) return
     const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
     let raf = 0
+    const hideAll = (): void => {
+      for (const x of [cursorGlowRef.current, cursorLineRef.current]) {
+        if (x) x.setAttribute('visibility', 'hidden')
+      }
+    }
     const loop = (): void => {
       const st = useStore.getState()
-      const el = cursorLineRef.current
       // 跳框模式:无光标线(连续模式下对点完成后始终显示,便于预览)
       if (st.videoMode === 'jump') {
-        if (el) el.setAttribute('visibility', 'hidden')
+        hideAll()
         raf = requestAnimationFrame(loop)
         return
       }
@@ -251,22 +259,32 @@ export default function ScoreCanvas(): React.JSX.Element {
       const ev = eventAtTime(t, st.markEvents)
       const cur = ev !== null ? ev.n : null
       const m = cur !== null ? measuresList.find((mm) => mm.n === cur) : undefined
-      if (el && m && ev && st.score) {
+      const glow = cursorGlowRef.current
+      const el = cursorLineRef.current
+      if (glow && el && m && ev && st.score) {
         // 按"当前事件"计算小节内进度(反复段落第二遍从该小节起点重新走)
         const idx = st.markEvents.indexOf(ev)
         const start = ev.time
         const end = st.markEvents[idx + 1]?.time ?? st.audioDuration
         const prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
         const cx = m.x0 + (m.x1 - m.x0) * prog
+        const cw = clamp((st.cursorWidth * st.score.width) / 1920, 1, 40)
+        // 轻光晕
+        glow.setAttribute('x1', String(cx))
+        glow.setAttribute('x2', String(cx))
+        glow.setAttribute('y1', String(m.top))
+        glow.setAttribute('y2', String(m.bottom))
+        glow.setAttribute('stroke-width', String(cw * 2.2))
+        glow.setAttribute('visibility', 'visible')
+        // 主渐变线(浓度由渐变定义控制)
         el.setAttribute('x1', String(cx))
         el.setAttribute('x2', String(cx))
         el.setAttribute('y1', String(m.top))
         el.setAttribute('y2', String(m.bottom))
-        el.setAttribute('stroke', st.cursorColor)
-        el.setAttribute('stroke-width', String(clamp((st.cursorWidth * st.score.width) / 1920, 1, 40)))
+        el.setAttribute('stroke-width', String(cw))
         el.setAttribute('visibility', 'visible')
-      } else if (el) {
-        el.setAttribute('visibility', 'hidden')
+      } else {
+        hideAll()
       }
       raf = requestAnimationFrame(loop)
     }
@@ -598,41 +616,83 @@ export default function ScoreCanvas(): React.JSX.Element {
                 viewBox={`0 0 ${score.width} ${score.height}`}
                 style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
               >
-                {/* 当前小节高亮(连续模式:蓝色跟随框) */}
+                {/* 渐变定义(发光玻璃框 + 辉光光标线) */}
+                <defs>
+                  <linearGradient id="jumpGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={rgba(jumpColor, Math.min(clamp(jumpOpacity, 0.02, 0.9) * 1.4, 0.75))} />
+                    <stop offset="100%" stopColor={rgba(jumpColor, clamp(jumpOpacity, 0.02, 0.9) * 0.5)} />
+                  </linearGradient>
+                  <linearGradient id="contGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={rgba(markLineColor, 0.26)} />
+                    <stop offset="100%" stopColor={rgba(markLineColor, 0.1)} />
+                  </linearGradient>
+                </defs>
+                {/* 当前小节高亮(连续模式:发光玻璃框,跟随标线颜色) */}
                 {videoMode === 'continuous' &&
                   currentMeasure !== null &&
                   measures
                     .filter((m) => m.n === currentMeasure)
                     .map((m) => (
-                      <rect
-                        key={`cur${m.n}`}
-                        x={m.x0}
-                        y={m.top}
-                        width={m.x1 - m.x0}
-                        height={m.bottom - m.top}
-                        fill="rgba(55,138,221,0.18)"
-                        stroke="rgba(55,138,221,0.7)"
-                        strokeWidth={1.5 * k}
-                        rx={2 * k}
-                      />
+                      <g key={`cur${m.n}`}>
+                        <rect
+                          x={m.x0}
+                          y={m.top}
+                          width={m.x1 - m.x0}
+                          height={m.bottom - m.top}
+                          fill="none"
+                          stroke={rgba(markLineColor, 0.22)}
+                          strokeWidth={6 * k}
+                          rx={6 * k}
+                        />
+                        <rect
+                          x={m.x0}
+                          y={m.top}
+                          width={m.x1 - m.x0}
+                          height={m.bottom - m.top}
+                          fill="url(#contGrad)"
+                          stroke={rgba(markLineColor, 0.8)}
+                          strokeWidth={1.2 * k}
+                          rx={6 * k}
+                        />
+                      </g>
                     ))}
-                {/* 跳框模式:当前小节实色高亮 + 下一小节虚线预备(浓度可调) */}
+                {/* 跳框模式:发光玻璃框(渐变填充+外发光+顶部高光) + 下一小节虚线预备 */}
                 {videoMode === 'jump' &&
                   currentMeasure !== null &&
                   measures
                     .filter((m) => m.n === currentMeasure)
                     .map((m) => (
-                      <rect
-                        key={`jcur${m.n}`}
-                        x={m.x0}
-                        y={m.top}
-                        width={m.x1 - m.x0}
-                        height={m.bottom - m.top}
-                        fill={rgba(jumpColor, clamp(jumpOpacity, 0.02, 0.9))}
-                        stroke={rgba(jumpColor, 0.95)}
-                        strokeWidth={3 * k}
-                        rx={3 * k}
-                      />
+                      <g key={`jcur${m.n}`}>
+                        <rect
+                          x={m.x0}
+                          y={m.top}
+                          width={m.x1 - m.x0}
+                          height={m.bottom - m.top}
+                          fill="none"
+                          stroke={rgba(jumpColor, 0.22)}
+                          strokeWidth={7 * k}
+                          rx={6 * k}
+                        />
+                        <rect
+                          x={m.x0}
+                          y={m.top}
+                          width={m.x1 - m.x0}
+                          height={m.bottom - m.top}
+                          fill="url(#jumpGrad)"
+                          stroke={rgba(jumpColor, 0.9)}
+                          strokeWidth={1.6 * k}
+                          rx={6 * k}
+                        />
+                        <line
+                          x1={m.x0 + 8 * k}
+                          y1={m.top + 4 * k}
+                          x2={m.x1 - 8 * k}
+                          y2={m.top + 4 * k}
+                          stroke={rgba(jumpColor, 0.4)}
+                          strokeWidth={1.2 * k}
+                          strokeLinecap="round"
+                        />
+                      </g>
                     ))}
                 {videoMode === 'jump' &&
                   currentMeasure !== null &&
@@ -697,7 +757,7 @@ export default function ScoreCanvas(): React.JSX.Element {
                     y1={y}
                     x2={rightBorder}
                     y2={y}
-                    stroke={selected?.type === 'h' && selHIdx === i ? '#E24B4A' : '#378ADD'}
+                    stroke={selected?.type === 'h' && selHIdx === i ? '#E24B4A' : markLineColor}
                     strokeWidth={lw}
                   />
                 ))}
@@ -712,7 +772,7 @@ export default function ScoreCanvas(): React.JSX.Element {
                       y1={top}
                       x2={v.x}
                       y2={bottom}
-                      stroke={isSel ? '#E24B4A' : v.kind === 'full' ? '#185FA5' : '#378ADD'}
+                      stroke={isSel ? '#E24B4A' : markLineColor}
                       strokeWidth={isSel ? lw + 1 : v.kind === 'full' ? lw + 1 : lw}
                     />
                   )
@@ -724,7 +784,7 @@ export default function ScoreCanvas(): React.JSX.Element {
                     y1={previewY}
                     x2={rightBorder}
                     y2={previewY}
-                    stroke="rgba(55,138,221,0.45)"
+                    stroke={rgba(markLineColor, 0.45)}
                     strokeWidth={lw + 1}
                     strokeDasharray={`${10 * k} ${7 * k}`}
                   />
@@ -741,7 +801,7 @@ export default function ScoreCanvas(): React.JSX.Element {
                         y1={pt}
                         x2={previewX}
                         y2={pb}
-                        stroke="rgba(55,138,221,0.45)"
+                        stroke={rgba(markLineColor, 0.45)}
                         strokeWidth={lw + 1}
                         strokeDasharray={`${10 * k} ${7 * k}`}
                       />
@@ -771,8 +831,8 @@ export default function ScoreCanvas(): React.JSX.Element {
                         width={22 * k}
                         height={17 * k}
                         rx={3 * k}
-                        fill="rgba(55,138,221,0.14)"
-                        stroke="rgba(55,138,221,0.55)"
+                        fill={rgba(markLineColor, 0.14)}
+                        stroke={rgba(markLineColor, 0.55)}
                         strokeWidth={0.8 * k}
                       />
                       <text
@@ -781,7 +841,7 @@ export default function ScoreCanvas(): React.JSX.Element {
                         textAnchor="middle"
                         fontSize={13 * k}
                         fontWeight={500}
-                        fill="#0C447C"
+                        fill={markLineColor}
                         cursor="pointer"
                         onMouseDown={(ev2) => ev2.stopPropagation()}
                         onClick={(ev2) => {
@@ -821,16 +881,30 @@ export default function ScoreCanvas(): React.JSX.Element {
                     />
                   </g>
                 )}
-                {/* 播放预览光标线(rAF 实时更新,颜色/粗细与视频导出一致) */}
+                {/* 播放预览光标线(rAF 实时更新:轻光晕 + 纯色主线,浓度由 opacity 控制) */}
+                <line
+                  ref={cursorGlowRef}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="0"
+                  stroke={cursorColor}
+                  strokeWidth={11}
+                  strokeLinecap="round"
+                  opacity={0.07 * cursorOpacity}
+                  visibility="hidden"
+                  pointerEvents="none"
+                />
                 <line
                   ref={cursorLineRef}
                   x1="0"
                   y1="0"
                   x2="0"
                   y2="0"
-                  stroke="#E24B4A"
+                  stroke={cursorColor}
                   strokeWidth={5}
                   strokeLinecap="round"
+                  opacity={cursorOpacity}
                   visibility="hidden"
                   pointerEvents="none"
                 />

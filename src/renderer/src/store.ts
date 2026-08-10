@@ -58,6 +58,9 @@ interface EditorState {
   setLineWidth: (w: number) => void
   setSelected: (s: Selected | null) => void
   setScale: (s: number) => void
+  /** 标线颜色(横线/竖线/当前小节预览选框统一跟随) */
+  markLineColor: string
+  setMarkLineColor: (c: string) => void
 
   /** 标线自动吸附开关(默认开) */
   snapEnabled: boolean
@@ -93,8 +96,11 @@ interface EditorState {
   // ---------- 视频导出:光标线设置(连续模式) ----------
   cursorColor: string
   cursorWidth: number
+  /** 光标线浓度(颜色深浅,0.2~1) */
+  cursorOpacity: number
   setCursorColor: (c: string) => void
   setCursorWidth: (w: number) => void
+  setCursorOpacity: (o: number) => void
 
   // ---------- 视频导出:跟随模式与跳框高亮颜色 ----------
   videoMode: 'continuous' | 'jump'
@@ -143,6 +149,7 @@ export const useStore = create<EditorState>((set, get) => ({
 
   cursorColor: '#E24B4A',
   cursorWidth: 5,
+  cursorOpacity: 0.85,
 
   videoMode: 'continuous',
   jumpColor: '#E24B4A',
@@ -233,6 +240,8 @@ export const useStore = create<EditorState>((set, get) => ({
   setLineWidth: (w) => set({ lineWidth: w, dirty: true }),
   setSelected: (s) => set({ selected: s }),
   setScale: (s) => set({ scale: s }),
+  markLineColor: '#378ADD',
+  setMarkLineColor: (c) => set({ markLineColor: c }),
 
   snapEnabled: false,
   setSnapEnabled: (b) => set({ snapEnabled: b }),
@@ -317,6 +326,7 @@ export const useStore = create<EditorState>((set, get) => ({
 
   setCursorColor: (c) => set({ cursorColor: c }),
   setCursorWidth: (w) => set({ cursorWidth: w }),
+  setCursorOpacity: (o) => set({ cursorOpacity: o }),
 
   setVideoMode: (m) => set({ videoMode: m }),
   setJumpColor: (c) => set({ jumpColor: c }),
