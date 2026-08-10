@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { AudioLines, ChevronLeft, ChevronRight, Pause, Play, Square, Target, Upload } from 'lucide-react'
+import { AudioLines, ChevronLeft, ChevronRight, Pause, Play, Square, Upload } from 'lucide-react'
 import { useStore } from '../store'
 import { decodeWaveform, formatTime, getAudio } from '../audioPlayer'
 import { getMeasureCount } from '../geometry'
@@ -303,14 +303,19 @@ export default function AudioPanel(): React.JSX.Element {
             <button className="btn icon stop" title="停止(回到开头)" onClick={stop}>
               <Square size={13} />
             </button>
-            <button
-              className={`btn icon target ${marking ? 'marking' : ''}`}
-              title="对点开关:开启后,播放中点击曲谱小节 = 把当前播放时间记到该小节"
-              onClick={toggleMarking}
-            >
-              <Target size={14} />
+            <button className="btn icon" title="前进(跳到下一个对点小节)" onClick={() => jumpMarked(1)}>
+              <ChevronRight size={15} />
             </button>
           </div>
+
+          {/* 对点模式:文字 + 开关(独立一行) */}
+          <label className="marking-toggle">
+            <span>对点模式</span>
+            <input type="checkbox" checked={marking} onChange={toggleMarking} />
+            <span className="toggle-track">
+              <span className="toggle-thumb" />
+            </span>
+          </label>
 
           <div className="measure-nav">
             <button

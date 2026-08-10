@@ -26,7 +26,7 @@ export interface Selected {
   id: string
 }
 
-/** 项目文件结构(可序列化) */
+/** 项目文件结构(可序列化,保存时整体 AES 加密) */
 export interface ProjectFile {
   version: 1
   name: string
@@ -35,4 +35,6 @@ export interface ProjectFile {
   vLines: VLine[]
   /** 音频对点:小节编号 → 音频时间(秒) */
   measureTimes?: Record<number, number>
+  /** 音频内容(随项目保存,打开后自动恢复,无需重新导入) */
+  audio?: { name: string; dataUrl: string } | null
 }

@@ -1,6 +1,7 @@
 import React, { useRef } from 'react'
-import { FolderOpen, Music4, Save } from 'lucide-react'
+import { FolderOpen, Music4, Save, X } from 'lucide-react'
 import { useStore } from '../store'
+import { getAudio } from '../audioPlayer'
 
 export default function TopBar(): React.JSX.Element {
   const projectName = useStore((s) => s.projectName)
@@ -8,6 +9,7 @@ export default function TopBar(): React.JSX.Element {
   const dirty = useStore((s) => s.dirty)
   const serialize = useStore((s) => s.serialize)
   const loadProject = useStore((s) => s.loadProject)
+  const clearProject = useStore((s) => s.clearProject)
   const markSaved = useStore((s) => s.markSaved)
   const jsonInputRef = useRef<HTMLInputElement>(null)
 
@@ -15,12 +17,17 @@ export default function TopBar(): React.JSX.Element {
     const json = JSON.stringify(serialize())
     if (window.api?.isElectron) {
       const p = await window.api.saveProject(projectName, json)
-      if (p) markSaved()
+      if (p) {
+        // 保存后把项目名同步为文件名(不含扩展名),下次保存默认用项目名
+        const base = p.split('/').pop()?.replace(/\.dscore(\.json)?$/i, '') ?? projectName
+        setProjectName(base)
+        markSaved()
+      }
     } else {
       const blob = new Blob([json], { type: 'application/json' })
       const a = document.createElement('a')
       a.href = URL.createObjectURL(blob)
-      a.download = `${projectName || '未命名曲谱'}.dscore.json`
+      a.download = `${projectName || '未命名曲谱'}.dscore`
       a.click()
       URL.revokeObjectURL(a.href)
       markSaved()
@@ -33,12 +40,23 @@ export default function TopBar(): React.JSX.Element {
       if (!r) return
       try {
         loadProject(JSON.parse(r.content))
+        // 打开后把项目名同步为文件名(不含扩展名)
+        const base = r.path.split('/').pop()?.replace(/\.dscore(\.json)?$/i, '') ?? ''
+        if (base) setProjectName(base)
       } catch {
         alert('项目文件解析失败,可能不是有效的曲谱项目文件')
       }
     } else {
       jsonInputRef.current?.click()
     }
+  }
+
+  /** 关闭项目:有未保存修改时先确认,然后清空工作区 */
+  const closeProject = (): void => {
+    if (dirty && !window.confirm('当前项目有未保存的修改,确定关闭吗?')) return
+    getAudio().pause()
+    getAudio().removeAttribute('src')
+    clearProject()
   }
 
   return (
@@ -61,6 +79,9 @@ export default function TopBar(): React.JSX.Element {
       <div className="topbar-actions">
         <button className="btn" onClick={() => void open()}>
           <FolderOpen size={14} /> 打开项目
+        </button>
+        <button className="btn" onClick={closeProject} title="清空当前工作区,开始新项目">
+          <X size={14} /> 关闭项目
         </button>
         <button className="btn primary" onClick={() => void save()}>
           <Save size={14} /> 保存项目

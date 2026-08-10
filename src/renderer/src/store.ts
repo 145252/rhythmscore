@@ -86,6 +86,7 @@ interface EditorState {
 
   serialize: () => ProjectFile
   loadProject: (p: ProjectFile) => void
+  clearProject: () => void
   setProjectName: (n: string) => void
   markSaved: () => void
 }
@@ -211,7 +212,11 @@ export const useStore = create<EditorState>((set, get) => ({
       score: s.score,
       hLines: s.hLines,
       vLines: s.vLines,
-      measureTimes: Object.keys(s.measureTimes).length ? s.measureTimes : undefined
+      measureTimes: Object.keys(s.measureTimes).length ? s.measureTimes : undefined,
+      audio:
+        s.audioDataUrl && s.audioName
+          ? { name: s.audioName, dataUrl: s.audioDataUrl }
+          : null
     }
   },
   loadProject: (p) =>
@@ -224,8 +229,39 @@ export const useStore = create<EditorState>((set, get) => ({
       dirty: false,
       scale: 1,
       measureTimes: p.measureTimes ?? {},
-      measureBaseTimes: p.measureTimes ?? {}
+      measureBaseTimes: p.measureTimes ?? {},
+      // 恢复音频(打开后自动加载,无需重新导入)
+      audioName: p.audio?.name ?? null,
+      audioDataUrl: p.audio?.dataUrl ?? null,
+      audioDuration: 0,
+      isPlaying: false,
+      currentTime: 0,
+      waveformPeaks: null,
+      currentMeasure: null,
+      marking: false,
+      markingTarget: null
     }),
   setProjectName: (n) => set({ projectName: n }),
-  markSaved: () => set({ dirty: false })
+  markSaved: () => set({ dirty: false }),
+  clearProject: () =>
+    set({
+      projectName: '未命名曲谱',
+      dirty: false,
+      score: null,
+      hLines: [],
+      vLines: [],
+      selected: null,
+      scale: 1,
+      audioName: null,
+      audioDataUrl: null,
+      audioDuration: 0,
+      isPlaying: false,
+      currentTime: 0,
+      waveformPeaks: null,
+      currentMeasure: null,
+      measureTimes: {},
+      measureBaseTimes: {},
+      marking: false,
+      markingTarget: null
+    })
 }))

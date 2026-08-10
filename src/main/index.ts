@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
 import { join, basename, extname } from 'path'
 import { readFile, writeFile } from 'fs/promises'
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto'
 import { exportVideo, type SegmentSpec } from './ffmpeg'
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL
@@ -79,18 +80,42 @@ ipcMain.handle('dialog:openScore', async () => {
   }
 })
 
+// ---------- 项目文件 AES 加密(保存时加密,打开时解密) ----------
+
+const PROJECT_KEY = createHash('sha256').update('dynamic-score-project-lvren-2026').digest()
+
+function encryptProject(content: string): string {
+  const iv = randomBytes(12)
+  const cipher = createCipheriv('aes-256-gcm', PROJECT_KEY, iv)
+  const enc = Buffer.concat([cipher.update(content, 'utf8'), cipher.final()])
+  const tag = cipher.getAuthTag()
+  return Buffer.concat([iv, tag, enc]).toString('base64')
+}
+
+function decryptProject(data: string): string | null {
+  try {
+    const buf = Buffer.from(data, 'base64')
+    if (buf.length < 28) return null
+    const iv = buf.subarray(0, 12)
+    const tag = buf.subarray(12, 28)
+    const enc = buf.subarray(28)
+    const decipher = createDecipheriv('aes-256-gcm', PROJECT_KEY, iv)
+    decipher.setAuthTag(tag)
+    return Buffer.concat([decipher.update(enc), decipher.final()]).toString('utf8')
+  } catch {
+    return null
+  }
+}
+
 // ---------- IPC: 项目保存 / 打开 ----------
 ipcMain.handle('project:save', async (_e, defaultName: string, content: string) => {
   const r = await dialog.showSaveDialog({
     title: '保存项目',
-    defaultPath: defaultName.endsWith('.dscore.json') ? defaultName : `${defaultName}.dscore.json`,
-    filters: [
-      { name: '动态曲谱项目', extensions: ['dscore.json'] },
-      { name: 'JSON', extensions: ['json'] }
-    ]
+    defaultPath: defaultName.endsWith('.dscore') ? defaultName : `${defaultName}.dscore`,
+    filters: [{ name: '动态曲谱项目', extensions: ['dscore'] }]
   })
   if (r.canceled || !r.filePath) return null
-  await writeFile(r.filePath, content, 'utf-8')
+  await writeFile(r.filePath, encryptProject(content), 'utf-8')
   return r.filePath
 })
 
@@ -99,13 +124,14 @@ ipcMain.handle('project:open', async () => {
     title: '打开项目',
     properties: ['openFile'],
     filters: [
-      { name: '动态曲谱项目', extensions: ['dscore.json'] },
-      { name: 'JSON', extensions: ['json'] }
+      { name: '动态曲谱项目', extensions: ['dscore', 'dscore.json'] }
     ]
   })
   if (r.canceled || !r.filePaths[0]) return null
-  const content = await readFile(r.filePaths[0], 'utf-8')
-  return { path: r.filePaths[0], content }
+  const raw = await readFile(r.filePaths[0], 'utf-8')
+  // 优先解密(新格式);解密失败则按旧明文 JSON 兼容
+  const plain = decryptProject(raw)
+  return { path: r.filePaths[0], content: plain !== null ? plain : raw }
 })
 
 // ---------- IPC: 视频导出(webm → mp4 + 小节切片) ----------
