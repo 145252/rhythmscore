@@ -1,5 +1,5 @@
-import React, { useRef } from 'react'
-import { FolderOpen, Save, X } from 'lucide-react'
+import React, { useEffect, useRef } from 'react'
+import { FolderOpen, Monitor, Moon, Save, Sun, X } from 'lucide-react'
 import { useStore } from '../store'
 import { getAudio } from '../audioPlayer'
 
@@ -11,6 +11,8 @@ export default function TopBar(): React.JSX.Element {
   const loadProject = useStore((s) => s.loadProject)
   const clearProject = useStore((s) => s.clearProject)
   const markSaved = useStore((s) => s.markSaved)
+  const theme = useStore((s) => s.theme)
+  const setTheme = useStore((s) => s.setTheme)
   const jsonInputRef = useRef<HTMLInputElement>(null)
 
   const save = async (): Promise<void> => {
@@ -59,6 +61,15 @@ export default function TopBar(): React.JSX.Element {
     clearProject()
   }
 
+  // 应用菜单(文件 → 打开/保存项目)触发对应操作
+  useEffect(() => {
+    window.api?.onMenuAction?.((action) => {
+      if (action === 'open-project') void open()
+      if (action === 'save-project') void save()
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <header className="topbar">
       <div className="project-name">
@@ -73,6 +84,22 @@ export default function TopBar(): React.JSX.Element {
         </div>
       </div>
       <div className="topbar-actions">
+        <button
+          className="btn icon"
+          title={
+            theme === 'system'
+              ? '跟随系统(点击可手动切换)'
+              : theme === 'dark'
+                ? '黑夜模式(点击切换)'
+                : '白天模式(点击切换)'
+          }
+          onClick={() => {
+            const order: ('system' | 'light' | 'dark')[] = ['system', 'light', 'dark']
+            setTheme(order[(order.indexOf(theme) + 1) % order.length])
+          }}
+        >
+          {theme === 'system' ? <Monitor size={14} /> : theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />}
+        </button>
         <button className="btn" onClick={() => void open()}>
           <FolderOpen size={14} /> 打开项目
         </button>

@@ -1,11 +1,27 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Music4 } from 'lucide-react'
+import { useStore } from './store'
 import TopBar from './components/TopBar'
 import LeftPanel from './components/LeftPanel'
 import ScoreCanvas from './components/ScoreCanvas'
 import RightPanel from './components/RightPanel'
 
 export default function App(): React.JSX.Element {
+  const theme = useStore((s) => s.theme)
+
+  // 主题:system 跟随系统(监听系统切换自动变化),手动 light/dark 直接应用
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = (): void => {
+      const dark = theme === 'dark' || (theme === 'system' && mq.matches)
+      document.body.classList.toggle('dark', dark)
+      localStorage.setItem('wb-theme', theme)
+    }
+    apply()
+    mq.addEventListener('change', apply)
+    return () => mq.removeEventListener('change', apply)
+  }, [theme])
+
   return (
     <div className="app">
       {/* 顶部拖拽条:专门用于拖动窗口,控制按钮浮在此区域,品牌居中也放这里 */}
@@ -14,7 +30,7 @@ export default function App(): React.JSX.Element {
           <span className="brand-logo">
             <Music4 size={15} />
           </span>
-          <span className="brand-name">动态曲谱工作台</span>
+          <span className="brand-name">RhythmScore</span>
         </div>
       </div>
       <TopBar />

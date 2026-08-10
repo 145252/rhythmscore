@@ -11,6 +11,9 @@ function genId(): string {
 interface EditorState {
   projectName: string
   dirty: boolean
+  /** 界面主题:system=跟随系统 / light=白天 / dark=黑夜;持久化到 localStorage */
+  theme: 'system' | 'light' | 'dark'
+  setTheme: (t: 'system' | 'light' | 'dark') => void
 
   score: ScoreSource | null
   /** 多页曲谱(按顺序合并为长图;顺序可调整) */
@@ -123,6 +126,8 @@ interface EditorState {
 
 export const useStore = create<EditorState>((set, get) => ({
   projectName: '未命名曲谱',
+  theme: (localStorage.getItem('wb-theme') as 'system' | 'light' | 'dark') || 'system',
+  setTheme: (t) => set({ theme: t }),
   dirty: false,
 
   score: null,

@@ -30,6 +30,7 @@ interface WorkbuddyApi {
     defaultName: string
     splitMeasures?: ExportSegmentSpec[]
   }) => Promise<ExportVideoResult>
+  onMenuAction: (cb: (action: 'open-project' | 'save-project') => void) => void
 }
 
 interface Window {

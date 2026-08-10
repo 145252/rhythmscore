@@ -33,7 +33,12 @@ const api = {
     error?: string
     mainPath?: string
     segments?: string[]
-  }> => ipcRenderer.invoke('video:export', payload)
+  }> => ipcRenderer.invoke('video:export', payload),
+  /** 监听应用菜单动作(打开项目/保存项目) */
+  onMenuAction: (cb: (action: 'open-project' | 'save-project') => void) => {
+    ipcRenderer.on('menu:open-project', () => cb('open-project'))
+    ipcRenderer.on('menu:save-project', () => cb('save-project'))
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

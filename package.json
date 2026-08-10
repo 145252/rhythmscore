@@ -1,8 +1,8 @@
 {
-  "name": "dynamic-score-studio",
-  "productName": "动态曲谱工作台",
+  "name": "rhythm-score-studio",
+  "productName": "RhythmScore",
   "version": "0.1.0",
-  "description": "动态曲谱软件 - 将 PDF/JPG/PNG 鼓谱转换为可对轨、可生成动态视频的曲谱工作台",
+  "description": "RhythmScore - 将 PDF/JPG/PNG 鼓谱转换为可对轨、可生成动态跟随视频的桌面工作台",
   "main": "out/main/index.js",
   "author": "liuji",
   "license": "MIT",

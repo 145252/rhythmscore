@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, shell, Menu, type MenuItemConstructorOptions } from 'electron'
 import { join, basename, extname } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto'
@@ -10,13 +10,84 @@ const isDev = !!process.env.ELECTRON_RENDERER_URL
 // 本地开发与打包版均需禁用沙箱,否则 GPU/网络服务进程连环崩溃
 app.commandLine.appendSwitch('no-sandbox')
 
+let mainWin: BrowserWindow | null = null
+
+/** 中文应用菜单:文件/编辑/视图/窗口/帮助 */
+function buildMenu(): void {
+  const send = (channel: string): void => {
+    mainWin?.webContents.send(channel)
+  }
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: 'RhythmScore',
+      submenu: [
+        { role: 'about', label: '关于 RhythmScore' },
+        { type: 'separator' },
+        { role: 'hide', label: '隐藏 RhythmScore' },
+        { role: 'hideOthers', label: '隐藏其他' },
+        { role: 'unhide', label: '全部显示' },
+        { type: 'separator' },
+        { role: 'quit', label: '退出 RhythmScore' }
+      ]
+    },
+    {
+      label: '文件',
+      submenu: [
+        { label: '打开项目', accelerator: 'CmdOrCtrl+O', click: () => send('menu:open-project') },
+        { label: '保存项目', accelerator: 'CmdOrCtrl+S', click: () => send('menu:save-project') },
+        { type: 'separator' },
+        { role: 'close', label: '关闭窗口' }
+      ]
+    },
+    {
+      label: '编辑',
+      submenu: [
+        { role: 'undo', label: '撤销' },
+        { role: 'redo', label: '重做' },
+        { type: 'separator' },
+        { role: 'cut', label: '剪切' },
+        { role: 'copy', label: '复制' },
+        { role: 'paste', label: '粘贴' },
+        { role: 'selectAll', label: '全选' }
+      ]
+    },
+    {
+      label: '视图',
+      submenu: [
+        { role: 'reload', label: '重新加载' },
+        { role: 'forceReload', label: '强制重新加载' },
+        { role: 'toggleDevTools', label: '开发者工具' },
+        { type: 'separator' },
+        { role: 'resetZoom', label: '实际大小' },
+        { role: 'zoomIn', label: '放大' },
+        { role: 'zoomOut', label: '缩小' },
+        { type: 'separator' },
+        { role: 'togglefullscreen', label: '切换全屏' }
+      ]
+    },
+    {
+      label: '窗口',
+      submenu: [
+        { role: 'minimize', label: '最小化' },
+        { role: 'zoom', label: '缩放' },
+        { role: 'close', label: '关闭窗口' }
+      ]
+    },
+    {
+      label: '帮助',
+      submenu: [{ role: 'about', label: '关于 RhythmScore' }]
+    }
+  ]
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1480,
     height: 920,
     minWidth: 1100,
     minHeight: 700,
-    title: '动态曲谱工作台',
+    title: 'RhythmScore',
     // 隐藏原生标题栏:窗口控制按钮(红黄绿)浮在内容上,融入液态玻璃界面
     titleBarStyle: 'hiddenInset',
     // 调整控制按钮位置:靠左,垂直方向在拖拽条内居中
@@ -28,6 +99,10 @@ function createWindow(): void {
       nodeIntegration: false,
       sandbox: false
     }
+  })
+  mainWin = win
+  win.on('closed', () => {
+    mainWin = null
   })
 
   // 新窗口(外链)用系统浏览器打开
@@ -44,6 +119,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
+  buildMenu()
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

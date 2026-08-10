@@ -1188,3 +1188,226 @@ body {
     transform: rotate(360deg);
   }
 }
+
+/* ================= 黑夜模式 ================= */
+body.dark {
+  color: #dfe6f2;
+  background:
+    radial-gradient(1000px 700px at 8% -6%, rgba(60, 110, 200, 0.34), transparent 60%),
+    radial-gradient(900px 650px at 102% 12%, rgba(180, 110, 40, 0.26), transparent 55%),
+    radial-gradient(800px 700px at 45% 112%, rgba(110, 80, 190, 0.3), transparent 60%),
+    radial-gradient(700px 500px at 78% 52%, rgba(40, 150, 140, 0.2), transparent 60%),
+    linear-gradient(160deg, #171d2e 0%, #1d1a2e 50%, #16202f 100%);
+}
+
+body.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* 玻璃层:白玻璃 → 深色玻璃 */
+body.dark .topbar,
+body.dark .drag-strip {
+  background: linear-gradient(180deg, rgba(42, 52, 78, 0.74), rgba(24, 32, 52, 0.56));
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 4px 26px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+body.dark .side-panel {
+  background: linear-gradient(90deg, rgba(38, 48, 72, 0.66), rgba(26, 34, 54, 0.5));
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+body.dark .card {
+  background: linear-gradient(145deg, rgba(44, 56, 84, 0.66), rgba(24, 32, 52, 0.5));
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.42), inset 0 1.5px 1px rgba(255, 255, 255, 0.1);
+}
+
+body.dark .tool-grid,
+body.dark .line-width-row,
+body.dark .line-actions,
+body.dark .mode-row,
+body.dark .cursor-width-row,
+body.dark .cursor-colors,
+body.dark .ratio-grid,
+body.dark .split-opt,
+body.dark .audio-controls,
+body.dark .measure-nav,
+body.dark .audio-actions,
+body.dark .marking-toggle,
+body.dark .wave-wrap {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* 按钮 */
+body.dark .btn {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04));
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #dfe6f2;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+body.dark .btn:hover {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.07));
+}
+body.dark .btn:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+body.dark .btn.primary {
+  background: linear-gradient(180deg, #3d8cdd, #2669b4);
+  color: #fff;
+}
+body.dark .btn.subtle {
+  color: #c9d3e5;
+}
+body.dark .btn.danger-text {
+  color: #ff8f8d;
+}
+body.dark .btn.tool {
+  color: #aab4c8;
+}
+body.dark .btn.tool.active {
+  background: linear-gradient(180deg, rgba(55, 138, 221, 0.35), rgba(55, 138, 221, 0.18));
+  border-color: #4b98e7;
+  color: #7fc0ff;
+}
+
+/* 文字 */
+body.dark .card-title {
+  color: #e6ecf5;
+}
+body.dark .label,
+body.dark .sub-label {
+  color: #aab4c8;
+}
+body.dark .hint {
+  color: #7c88a0;
+}
+body.dark .lv,
+body.dark .canvas-pager {
+  color: #aab4c8;
+}
+body.dark .page-name,
+body.dark .zoom-value,
+body.dark .marked-count,
+body.dark .cur-measure {
+  color: #c9d3e5;
+}
+body.dark .page-idx {
+  color: #7c88a0;
+}
+body.dark .empty-title {
+  color: #e6ecf5;
+}
+body.dark .empty-sub {
+  color: #8a95ab;
+}
+body.dark .event-time {
+  color: #dfe6f2;
+}
+body.dark .marking-hint {
+  color: #ffc46b;
+}
+body.dark .brand-name {
+  background: linear-gradient(135deg, #7fc0ff, #b8d4f5);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 输入框 */
+body.dark .project-name-box {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04));
+  border-color: rgba(255, 255, 255, 0.14);
+}
+body.dark .project-name-box input {
+  color: #e6ecf5;
+}
+body.dark .modal-input,
+body.dark .event-input {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #e6ecf5;
+}
+body.dark .event-input.num {
+  color: #7fc0ff;
+}
+
+/* 切换开关 */
+body.dark .toggle-track {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+body.dark .toggle-track .toggle-thumb {
+  background: #dfe6f2;
+}
+
+/* 画布区 */
+body.dark .canvas-wrap {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+body.dark .canvas-toolbar {
+  background: linear-gradient(180deg, rgba(42, 52, 78, 0.6), rgba(26, 34, 54, 0.4));
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+body.dark .canvas-scroll {
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* 弹窗 */
+body.dark .modal-mask {
+  background: rgba(5, 8, 16, 0.55);
+}
+body.dark .modal-box {
+  background: linear-gradient(145deg, rgba(42, 52, 78, 0.96), rgba(22, 30, 48, 0.92));
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #dfe6f2;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+body.dark .modal-box h4 {
+  color: #e6ecf5;
+}
+body.dark .modal-box p {
+  color: #aab4c8;
+}
+
+/* 事件/页面行 */
+body.dark .event-row,
+body.dark .page-row {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03));
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* 音频拖放 */
+body.dark .audio-drop {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: #8a95ab;
+  border-color: rgba(150, 175, 215, 0.4);
+}
+body.dark .audio-drop:hover {
+  border-color: #4b98e7;
+  color: #7fc0ff;
+}
+body.dark .audio-name {
+  color: #c9d3e5;
+}
+
+/* 黑夜模式:行内标签文字(粗细/浓度/自动吸附/对点等)提亮 */
+body.dark .line-width-row,
+body.dark .cursor-width-row,
+body.dark .marking-toggle,
+body.dark .mode-row,
+body.dark .ratio-grid,
+body.dark .split-opt,
+body.dark .audio-controls,
+body.dark .measure-nav,
+body.dark .canvas-pager {
+  color: #c9d3e5;
+}
