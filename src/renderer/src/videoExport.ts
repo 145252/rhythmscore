@@ -50,6 +50,16 @@ export interface RenderData {
   ratio: VideoRatio
   /** 是否显示标线/编号(软件内用 true,导出视频默认 false) */
   showAnnotations: boolean
+  /** 连续模式光标线颜色与粗细(画布像素) */
+  cursorColor: string
+  cursorWidth: number
+  /** 跳框模式高亮颜色 */
+  jumpColor: string
+  /** 跳框模式当前小节填充浓度(0~1) */
+  jumpOpacity: number
+  /** 跳框模式下一小节(预备)颜色与浓度 */
+  nextColor: string
+  nextOpacity: number
 }
 
 export function buildMeasures(
@@ -219,25 +229,42 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
     const bw = (curM.x1 - curM.x0) * scale
     const bh = (curM.bottom - curM.top) * scale
     if (data.mode === 'jump') {
-      // 跳框:当前小节半透明高亮(视频中保留,它是跳框模式的核心)
-      ctx.fillStyle = 'rgba(55,138,221,0.22)'
-      ctx.strokeStyle = 'rgba(55,138,221,0.85)'
+      // 跳框:当前小节主色高亮 + 下一小节淡色预备提示(浓度可调)
+      const op = clamp(data.jumpOpacity, 0.02, 0.9)
+      ctx.fillStyle = hexToRgba(data.jumpColor, op)
+      ctx.strokeStyle = hexToRgba(data.jumpColor, 0.95)
       ctx.lineWidth = 4
       roundRect(ctx, bx, by, bw, bh, 4)
       ctx.fill()
       ctx.stroke()
+      // 下一小节(预备):独立颜色与浓度 + 虚线边框
+      const next = data.measures.find((m) => m.n === curM.n + 1)
+      if (next) {
+        const nx = tx(next.x0)
+        const ny = ty(next.top)
+        const nw = (next.x1 - next.x0) * scale
+        const nh = (next.bottom - next.top) * scale
+        ctx.fillStyle = hexToRgba(data.nextColor, clamp(data.nextOpacity, 0.02, 0.9))
+        ctx.strokeStyle = hexToRgba(data.nextColor, 0.55)
+        ctx.lineWidth = 2
+        ctx.setLineDash([12, 9])
+        roundRect(ctx, nx, ny, nw, nh, 4)
+        ctx.fill()
+        ctx.stroke()
+        ctx.setLineDash([])
+      }
     } else {
-      // 连续:小节内匀速红色光标线
+      // 连续:小节内匀速光标线(颜色/粗细可自定义)
       const times = Object.entries(data.measureTimes)
         .map(([n, time]) => ({ n: Number(n), time }))
         .sort((a, b) => a.time - b.time)
-      const idx = times.findIndex((x) => x.n === cur)
+      const idx = times.findIndex((x) => x.n === curM.n)
       const start = times[Math.max(idx, 0)]?.time ?? 0
       const end = times[Math.min(idx + 1, times.length - 1)]?.time ?? data.totalDuration
       const prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
       const cursorX = bx + bw * prog
-      ctx.strokeStyle = '#E24B4A'
-      ctx.lineWidth = 5
+      ctx.strokeStyle = data.cursorColor
+      ctx.lineWidth = data.cursorWidth
       ctx.beginPath()
       ctx.moveTo(cursorX, by)
       ctx.lineTo(cursorX, by + bh)
@@ -257,6 +284,15 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.arcTo(x, y + h, x, y, r)
   ctx.arcTo(x, y, x + w, y, r)
   ctx.closePath()
+}
+
+/** hex 颜色 → rgba 字符串(带透明度) */
+function hexToRgba(hex: string, alpha: number): string {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r},${g},${b},${alpha})`
 }
 
 /** 录制:播放音频并逐帧渲染(30fps 节流),返回含音画的 webm blob */

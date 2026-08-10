@@ -12,6 +12,8 @@ import {
 
 const RATIOS = Object.keys(RATIO_SIZES) as VideoRatio[]
 
+const CURSOR_COLORS = ['#E24B4A', '#F59E0B', '#EAB308', '#22C55E', '#3B82F6', '#8B5CF6', '#FFFFFF', '#111827']
+
 type ExportState = 'idle' | 'recording' | 'converting' | 'done' | 'error'
 
 export default function RightPanel(): React.JSX.Element {
@@ -23,14 +25,30 @@ export default function RightPanel(): React.JSX.Element {
   const vLines = useStore((s) => s.vLines)
   const lineWidth = useStore((s) => s.lineWidth)
   const projectName = useStore((s) => s.projectName)
+  const cursorColor = useStore((s) => s.cursorColor)
+  const cursorWidth = useStore((s) => s.cursorWidth)
+  const setCursorColor = useStore((s) => s.setCursorColor)
+  const setCursorWidth = useStore((s) => s.setCursorWidth)
+  const videoMode = useStore((s) => s.videoMode)
+  const jumpColor = useStore((s) => s.jumpColor)
+  const jumpOpacity = useStore((s) => s.jumpOpacity)
+  const nextColor = useStore((s) => s.nextColor)
+  const nextOpacity = useStore((s) => s.nextOpacity)
+  const setVideoMode = useStore((s) => s.setVideoMode)
+  const setJumpColor = useStore((s) => s.setJumpColor)
+  const setJumpOpacity = useStore((s) => s.setJumpOpacity)
+  const setNextColor = useStore((s) => s.setNextColor)
+  const setNextOpacity = useStore((s) => s.setNextOpacity)
 
-  const [mode, setMode] = useState<FollowMode>('continuous')
   const [ratio, setRatio] = useState<VideoRatio>('16:9')
   const [split, setSplit] = useState(true)
   const [state, setState] = useState<ExportState>('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
   const lastPctRef = useRef(-1)
+
+  const mode = videoMode
+  const setMode = setVideoMode
 
   const markedCount = Object.keys(measureTimes).length
   const ready = !!score && !!audioDataUrl && markedCount > 0
@@ -73,7 +91,13 @@ export default function RightPanel(): React.JSX.Element {
           totalDuration: st.audioDuration,
           mode,
           ratio,
-          showAnnotations: false // 导出视频保持纯净画面:不要标线/编号选框
+          showAnnotations: false, // 导出视频保持纯净画面:不要标线/编号选框
+          cursorColor,
+          cursorWidth,
+          jumpColor,
+          jumpOpacity,
+          nextColor,
+          nextOpacity
         },
         (r) => {
           // 进度按整百分比节流,避免高频 setState 拖累录制
@@ -146,6 +170,115 @@ export default function RightPanel(): React.JSX.Element {
             ? '光标在小节内随播放匀速移动,持续跟随'
             : '整小节高亮切换,重点展示当前小节'}
         </p>
+
+        {mode === 'continuous' && (
+          <>
+            <p className="label">光标线</p>
+            <div className="cursor-width-row">
+              <span>粗细</span>
+              <input
+                type="range"
+                min={2}
+                max={16}
+                value={cursorWidth}
+                onChange={(e) => setCursorWidth(Number(e.target.value))}
+                disabled={busy}
+              />
+              <span className="lv">{cursorWidth}px</span>
+            </div>
+            <div className="cursor-colors">
+              {CURSOR_COLORS.map((c) => (
+                <button
+                  key={c}
+                  className={`swatch ${cursorColor === c ? 'active' : ''}`}
+                  style={{ background: c }}
+                  title={c}
+                  onClick={() => setCursorColor(c)}
+                  disabled={busy}
+                />
+              ))}
+              <label className={`swatch custom ${!CURSOR_COLORS.includes(cursorColor) ? 'active' : ''}`} title="自定义颜色">
+                <input
+                  type="color"
+                  value={CURSOR_COLORS.includes(cursorColor) ? '#E24B4A' : cursorColor}
+                  onChange={(e) => setCursorColor(e.target.value)}
+                />
+              </label>
+            </div>
+          </>
+        )}
+
+        {mode === 'jump' && (
+          <>
+            <p className="label">跳框高亮</p>
+
+            <p className="sub-label">当前小节</p>
+            <div className="cursor-width-row">
+              <span>浓度</span>
+              <input
+                type="range"
+                min={5}
+                max={60}
+                value={Math.round(jumpOpacity * 100)}
+                onChange={(e) => setJumpOpacity(Number(e.target.value) / 100)}
+                disabled={busy}
+              />
+              <span className="lv">{Math.round(jumpOpacity * 100)}%</span>
+            </div>
+            <div className="cursor-colors">
+              {CURSOR_COLORS.map((c) => (
+                <button
+                  key={`jc${c}`}
+                  className={`swatch ${jumpColor === c ? 'active' : ''}`}
+                  style={{ background: c }}
+                  title={c}
+                  onClick={() => setJumpColor(c)}
+                  disabled={busy}
+                />
+              ))}
+              <label className={`swatch custom ${!CURSOR_COLORS.includes(jumpColor) ? 'active' : ''}`} title="自定义颜色">
+                <input
+                  type="color"
+                  value={CURSOR_COLORS.includes(jumpColor) ? '#E24B4A' : jumpColor}
+                  onChange={(e) => setJumpColor(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <p className="sub-label">下一小节(预备)</p>
+            <div className="cursor-width-row">
+              <span>浓度</span>
+              <input
+                type="range"
+                min={2}
+                max={40}
+                value={Math.round(nextOpacity * 100)}
+                onChange={(e) => setNextOpacity(Number(e.target.value) / 100)}
+                disabled={busy}
+              />
+              <span className="lv">{Math.round(nextOpacity * 100)}%</span>
+            </div>
+            <div className="cursor-colors">
+              {CURSOR_COLORS.map((c) => (
+                <button
+                  key={`nc${c}`}
+                  className={`swatch ${nextColor === c ? 'active' : ''}`}
+                  style={{ background: c }}
+                  title={c}
+                  onClick={() => setNextColor(c)}
+                  disabled={busy}
+                />
+              ))}
+              <label className={`swatch custom ${!CURSOR_COLORS.includes(nextColor) ? 'active' : ''}`} title="自定义颜色">
+                <input
+                  type="color"
+                  value={CURSOR_COLORS.includes(nextColor) ? '#E24B4A' : nextColor}
+                  onChange={(e) => setNextColor(e.target.value)}
+                />
+              </label>
+            </div>
+          </>
+        )}
 
         <p className="label">画面比例</p>
         <div className="ratio-grid">

@@ -5,6 +5,7 @@ import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, an
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
+import { buildMeasures, measureAtTime } from '../videoExport'
 import type { ScoreSource } from '../types'
 
 type DragState =
@@ -13,6 +14,15 @@ type DragState =
   | null
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi)
+
+/** hex 颜色 → rgba(带透明度),供 SVG 高亮使用 */
+function rgba(hex: string, a: number): string {
+  const h = hex.replace('#', '')
+  const r = parseInt(h.slice(0, 2), 16)
+  const g = parseInt(h.slice(2, 4), 16)
+  const b = parseInt(h.slice(4, 6), 16)
+  return `rgba(${r},${g},${b},${a})`
+}
 
 function readAsDataURL(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -58,10 +68,16 @@ export default function ScoreCanvas(): React.JSX.Element {
   const measureBaseTimes = useStore((s) => s.measureBaseTimes)
   const marking = useStore((s) => s.marking)
   const markingTarget = useStore((s) => s.markingTarget)
+  const videoMode = useStore((s) => s.videoMode)
+  const jumpColor = useStore((s) => s.jumpColor)
+  const jumpOpacity = useStore((s) => s.jumpOpacity)
+  const nextColor = useStore((s) => s.nextColor)
+  const nextOpacity = useStore((s) => s.nextOpacity)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cursorLineRef = useRef<SVGLineElement>(null)
   const [drag, setDrag] = useState<DragState>(null)
   const [dragOver, setDragOver] = useState(false)
   /** 鼠标悬停位置(图片坐标),用于虚拟预览线 */
@@ -159,6 +175,49 @@ export default function ScoreCanvas(): React.JSX.Element {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [selected, removeLine])
+
+  // 播放预览光标线:对点完成后,软件内实时显示光标(颜色/粗细与视频导出一致)
+  useEffect(() => {
+    if (!score || Object.keys(measureTimes).length === 0) return
+    const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
+    let raf = 0
+    const loop = (): void => {
+      const st = useStore.getState()
+      const el = cursorLineRef.current
+      if (st.videoMode === 'jump') {
+        // 跳框模式:无光标线
+        if (el) el.setAttribute('visibility', 'hidden')
+        raf = requestAnimationFrame(loop)
+        return
+      }
+      const t = getAudio().currentTime
+      const cur = measureAtTime(t, st.measureTimes)
+      const m = cur !== null ? measuresList.find((mm) => mm.n === cur) : undefined
+      if (el && m && st.score) {
+        const times = Object.entries(st.measureTimes)
+          .map(([n, time]) => ({ n: Number(n), time }))
+          .sort((a, b) => a.time - b.time)
+        const idx = times.findIndex((x) => x.n === cur)
+        const start = times[Math.max(idx, 0)]?.time ?? 0
+        const end = times[Math.min(idx + 1, times.length - 1)]?.time ?? st.audioDuration
+        const prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
+        const cx = m.x0 + (m.x1 - m.x0) * prog
+        el.setAttribute('x1', String(cx))
+        el.setAttribute('x2', String(cx))
+        el.setAttribute('y1', String(m.top))
+        el.setAttribute('y2', String(m.bottom))
+        el.setAttribute('stroke', st.cursorColor)
+        el.setAttribute('stroke-width', String(clamp((st.cursorWidth * st.score.width) / 1920, 1, 40)))
+        el.setAttribute('visibility', 'visible')
+      } else if (el) {
+        el.setAttribute('visibility', 'hidden')
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score, hLines, vLines, measureTimes])
 
   // ---------- 坐标与命中 ----------
   const toImage = (e: React.MouseEvent): { x: number; y: number } => {
@@ -401,8 +460,9 @@ export default function ScoreCanvas(): React.JSX.Element {
                 viewBox={`0 0 ${score.width} ${score.height}`}
                 style={{ position: 'absolute', left: 0, top: 0, overflow: 'visible', pointerEvents: 'none' }}
               >
-                {/* 当前小节高亮 */}
-                {currentMeasure !== null &&
+                {/* 当前小节高亮(连续模式:蓝色跟随框) */}
+                {videoMode === 'continuous' &&
+                  currentMeasure !== null &&
                   measures
                     .filter((m) => m.n === currentMeasure)
                     .map((m) => (
@@ -416,6 +476,42 @@ export default function ScoreCanvas(): React.JSX.Element {
                         stroke="rgba(55,138,221,0.7)"
                         strokeWidth={1.5 * k}
                         rx={2 * k}
+                      />
+                    ))}
+                {/* 跳框模式:当前小节实色高亮 + 下一小节虚线预备(浓度可调) */}
+                {videoMode === 'jump' &&
+                  currentMeasure !== null &&
+                  measures
+                    .filter((m) => m.n === currentMeasure)
+                    .map((m) => (
+                      <rect
+                        key={`jcur${m.n}`}
+                        x={m.x0}
+                        y={m.top}
+                        width={m.x1 - m.x0}
+                        height={m.bottom - m.top}
+                        fill={rgba(jumpColor, clamp(jumpOpacity, 0.02, 0.9))}
+                        stroke={rgba(jumpColor, 0.95)}
+                        strokeWidth={3 * k}
+                        rx={3 * k}
+                      />
+                    ))}
+                {videoMode === 'jump' &&
+                  currentMeasure !== null &&
+                  measures
+                    .filter((m) => m.n === currentMeasure + 1)
+                    .map((m) => (
+                      <rect
+                        key={`jnext${m.n}`}
+                        x={m.x0}
+                        y={m.top}
+                        width={m.x1 - m.x0}
+                        height={m.bottom - m.top}
+                        fill={rgba(nextColor, clamp(nextOpacity, 0.02, 0.9))}
+                        stroke={rgba(nextColor, 0.55)}
+                        strokeWidth={1.5 * k}
+                        strokeDasharray={`${10 * k} ${7 * k}`}
+                        rx={3 * k}
                       />
                     ))}
                 {/* 对点目标小节(回车打点的目标,橙色虚线框) */}
@@ -560,6 +656,19 @@ export default function ScoreCanvas(): React.JSX.Element {
                     />
                   </g>
                 )}
+                {/* 播放预览光标线(rAF 实时更新,颜色/粗细与视频导出一致) */}
+                <line
+                  ref={cursorLineRef}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="0"
+                  stroke="#E24B4A"
+                  strokeWidth={5}
+                  strokeLinecap="round"
+                  visibility="hidden"
+                  pointerEvents="none"
+                />
               </svg>
             </div>
           </div>

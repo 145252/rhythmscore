@@ -66,6 +66,24 @@ interface EditorState {
   setMarking: (b: boolean) => void
   setMarkingTarget: (n: number | null) => void
 
+  // ---------- 视频导出:光标线设置(连续模式) ----------
+  cursorColor: string
+  cursorWidth: number
+  setCursorColor: (c: string) => void
+  setCursorWidth: (w: number) => void
+
+  // ---------- 视频导出:跟随模式与跳框高亮颜色 ----------
+  videoMode: 'continuous' | 'jump'
+  jumpColor: string
+  jumpOpacity: number
+  nextColor: string
+  nextOpacity: number
+  setVideoMode: (m: 'continuous' | 'jump') => void
+  setJumpColor: (c: string) => void
+  setJumpOpacity: (o: number) => void
+  setNextColor: (c: string) => void
+  setNextOpacity: (o: number) => void
+
   serialize: () => ProjectFile
   loadProject: (p: ProjectFile) => void
   setProjectName: (n: string) => void
@@ -97,6 +115,15 @@ export const useStore = create<EditorState>((set, get) => ({
   measureBaseTimes: {},
   marking: false,
   markingTarget: null,
+
+  cursorColor: '#E24B4A',
+  cursorWidth: 5,
+
+  videoMode: 'continuous',
+  jumpColor: '#E24B4A',
+  jumpOpacity: 0.24,
+  nextColor: '#E24B4A',
+  nextOpacity: 0.07,
 
   setScore: (s) => set({ score: s, dirty: true }),
   addHLine: (y) => {
@@ -166,6 +193,15 @@ export const useStore = create<EditorState>((set, get) => ({
   setMeasureBase: (n, t) => set({ measureBaseTimes: { ...get().measureBaseTimes, [n]: t } }),
   setMarking: (b) => set({ marking: b }),
   setMarkingTarget: (n) => set({ markingTarget: n }),
+
+  setCursorColor: (c) => set({ cursorColor: c }),
+  setCursorWidth: (w) => set({ cursorWidth: w }),
+
+  setVideoMode: (m) => set({ videoMode: m }),
+  setJumpColor: (c) => set({ jumpColor: c }),
+  setJumpOpacity: (o) => set({ jumpOpacity: o }),
+  setNextColor: (c) => set({ nextColor: c }),
+  setNextOpacity: (o) => set({ nextOpacity: o }),
 
   serialize: () => {
     const s = get()
