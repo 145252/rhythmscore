@@ -5,11 +5,9 @@ import { exportVideo, type SegmentSpec } from './ffmpeg'
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL
 
-// 在受限/容器化环境中 Chromium 沙箱可能无法初始化,开发模式下禁用沙箱
-// (仅影响本地开发运行,打包发布时可移除)
-if (isDev) {
-  app.commandLine.appendSwitch('no-sandbox')
-}
+// 在受限/容器化环境中 Chromium 沙箱无法初始化(Operation not permitted),
+// 本地开发与打包版均需禁用沙箱,否则 GPU/网络服务进程连环崩溃
+app.commandLine.appendSwitch('no-sandbox')
 
 function createWindow(): void {
   const win = new BrowserWindow({

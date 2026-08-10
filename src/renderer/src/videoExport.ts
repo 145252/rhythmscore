@@ -13,13 +13,14 @@ import type { VLine } from './types'
 import { getAudio } from './audioPlayer'
 
 export type FollowMode = 'continuous' | 'jump'
-export type VideoRatio = '单行' | '连滚' | '3:4' | '4:3' | '16:9' | '18:9'
+export type VideoRatio = '单行' | '连滚' | '3:4' | '4:3' | '9:16' | '16:9' | '18:9'
 
 export const RATIO_SIZES: Record<VideoRatio, { w: number; h: number }> = {
   单行: { w: 1920, h: 1080 },
   连滚: { w: 1920, h: 1080 },
   '3:4': { w: 1080, h: 1440 },
   '4:3': { w: 1440, h: 1080 },
+  '9:16': { w: 1080, h: 1920 },
   '16:9': { w: 1920, h: 1080 },
   '18:9': { w: 1920, h: 960 }
 }

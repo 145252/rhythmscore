@@ -153,7 +153,7 @@ export default function RightPanel(): React.JSX.Element {
     <aside className="side-panel right">
       <div className="card">
         <h3 className="card-title">
-          <span className="num">3</span> 生成视频
+          <span className="num">3</span> 高亮设置
         </h3>
 
         <p className="label">跟随模式</p>
@@ -279,6 +279,15 @@ export default function RightPanel(): React.JSX.Element {
             </div>
           </>
         )}
+
+      </div>
+
+      <div className="section-gap" />
+
+      <div className="card">
+        <h3 className="card-title">
+          <span className="num">4</span> 生成视频
+        </h3>
 
         <p className="label">画面比例</p>
         <div className="ratio-grid">
