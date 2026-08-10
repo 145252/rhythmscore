@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 
-interface ScoreOpenResult {
+interface ScoreFile {
   path: string
   name: string
   ext: string
@@ -22,7 +22,7 @@ interface ExportVideoResult {
 
 interface WorkbuddyApi {
   isElectron: boolean
-  openScoreFile: () => Promise<ScoreOpenResult | null>
+  openScoreFile: () => Promise<{ files: ScoreFile[] } | null>
   saveProject: (defaultName: string, content: string) => Promise<string | null>
   openProject: () => Promise<{ path: string; content: string } | null>
   exportVideo: (payload: {

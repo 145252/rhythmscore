@@ -8,12 +8,14 @@ export interface SegmentSpec {
 
 const api = {
   isElectron: true,
-  /** 打开文件对话框选择曲谱文件,返回 { path, name, ext, dataBase64 } */
+  /** 打开文件对话框选择曲谱文件(可多选),返回文件列表 */
   openScoreFile: (): Promise<{
-    path: string
-    name: string
-    ext: string
-    dataBase64: string
+    files: {
+      path: string
+      name: string
+      ext: string
+      dataBase64: string
+    }[]
   } | null> => ipcRenderer.invoke('dialog:openScore'),
   /** 保存项目 JSON,返回保存路径或 null */
   saveProject: (defaultName: string, content: string): Promise<string | null> =>

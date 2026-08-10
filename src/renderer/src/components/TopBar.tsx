@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { FolderOpen, Music4, Save, X } from 'lucide-react'
+import { FolderOpen, Save, X } from 'lucide-react'
 import { useStore } from '../store'
 import { getAudio } from '../audioPlayer'
 
@@ -61,20 +61,16 @@ export default function TopBar(): React.JSX.Element {
 
   return (
     <header className="topbar">
-      <div className="brand">
-        <span className="brand-logo">
-          <Music4 size={16} />
-        </span>
-        <span className="brand-name">动态曲谱工作台</span>
-      </div>
       <div className="project-name">
-        <input
-          value={projectName}
-          onChange={(e) => setProjectName(e.target.value)}
-          spellCheck={false}
-          title="项目名称"
-        />
-        {dirty && <span className="dirty-dot" title="有未保存的修改" />}
+        <div className="project-name-box">
+          <input
+            value={projectName}
+            onChange={(e) => setProjectName(e.target.value)}
+            spellCheck={false}
+            title="项目名称"
+          />
+          {dirty && <span className="dirty-dot" title="有未保存的修改" />}
+        </div>
       </div>
       <div className="topbar-actions">
         <button className="btn" onClick={() => void open()}>

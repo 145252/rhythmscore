@@ -28,7 +28,15 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', 'Microsoft YaHei', sans-serif;
   font-size: 13px;
   color: var(--text);
-  background: var(--bg);
+  /* 苹果液态玻璃:更浓郁的光斑,让磨砂玻璃透出丰富层次 */
+  background:
+    radial-gradient(1000px 700px at 8% -6%, rgba(70, 150, 255, 0.4), transparent 60%),
+    radial-gradient(900px 650px at 102% 12%, rgba(255, 160, 60, 0.35), transparent 55%),
+    radial-gradient(800px 700px at 45% 112%, rgba(150, 110, 255, 0.32), transparent 60%),
+    radial-gradient(700px 500px at 78% 52%, rgba(60, 220, 200, 0.26), transparent 60%),
+    radial-gradient(500px 400px at 25% 70%, rgba(255, 120, 180, 0.16), transparent 60%),
+    linear-gradient(160deg, #e6eef9 0%, #f7f0e4 50%, #ebedfa 100%);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
   user-select: none;
@@ -52,28 +60,37 @@ body {
   justify-content: center;
   gap: 6px;
   padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--panel);
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.32));
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 8px rgba(30, 40, 90, 0.07);
   color: var(--text);
   font-size: 13px;
   cursor: pointer;
-  transition: background 0.12s ease, border-color 0.12s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
   white-space: nowrap;
 }
 .btn:hover {
-  background: #f0f0ee;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.62));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), 0 4px 14px rgba(30, 40, 90, 0.12);
 }
 .btn:active {
-  background: #e7e7e4;
+  background: rgba(255, 255, 255, 0.45);
+  transform: scale(0.95);
 }
 .btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: linear-gradient(180deg, #4b98e7, #2e7bc9);
+  border-color: rgba(55, 138, 221, 0.9);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(55, 138, 221, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 .btn.primary:hover {
-  background: #2f7ccb;
+  background: linear-gradient(180deg, #3d8cdd, #2669b4);
+}
+.btn.primary:active {
+  transform: scale(0.95);
 }
 .btn.primary:disabled,
 .btn:disabled {
@@ -89,16 +106,57 @@ body {
   color: var(--text-2);
 }
 .btn.tool.active {
-  background: var(--accent-soft);
+  background: linear-gradient(180deg, rgba(230, 241, 251, 0.9), rgba(210, 231, 250, 0.6));
   border-color: var(--accent);
   color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(55, 138, 221, 0.2), 0 4px 14px rgba(55, 138, 221, 0.25);
+  animation: pop 0.22s ease;
 }
 
 .card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.66), rgba(255, 255, 255, 0.18));
+  -webkit-backdrop-filter: blur(32px) saturate(2.2);
+  backdrop-filter: blur(32px) saturate(2.2);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 18px;
   padding: 12px;
+  box-shadow:
+    0 18px 52px rgba(30, 40, 90, 0.16),
+    inset 0 1.5px 1px rgba(255, 255, 255, 1),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.32);
+}
+
+/* 板块子内容统一玻璃化(工具区/模式区/比例区/音频控制等) */
+.tool-grid,
+.line-width-row,
+.line-actions,
+.mode-row,
+.cursor-width-row,
+.cursor-colors,
+.ratio-grid,
+.split-opt,
+.audio-controls,
+.measure-nav,
+.audio-actions,
+.marking-toggle {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22));
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 11px;
+  padding: 8px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8), 0 2px 8px rgba(30, 40, 90, 0.06);
+}
+
+/* 波形容器单独玻璃(保持波形高度) */
+.wave-wrap {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.22));
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 11px;
+  padding: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .card-title {
@@ -137,21 +195,45 @@ body {
 .chip {
   padding: 5px 0;
   text-align: center;
-  border-radius: 7px;
-  border: 1px solid var(--border);
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
   font-size: 12px;
   color: var(--text-2);
   cursor: pointer;
-  transition: all 0.12s ease;
-  background: var(--panel);
+  transition: all 0.15s ease;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.38));
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 8px rgba(30, 40, 90, 0.06);
 }
 .chip:hover {
-  border-color: var(--text-3);
+  border-color: rgba(120, 160, 220, 0.85);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.6));
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 1), 0 4px 12px rgba(30, 40, 90, 0.12);
+}
+.chip:active {
+  transform: scale(0.94);
 }
 .chip.active {
   border-color: var(--accent);
-  background: var(--accent-soft);
+  background: linear-gradient(180deg, rgba(230, 241, 251, 0.95), rgba(210, 231, 250, 0.65));
   color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(55, 138, 221, 0.25), 0 4px 16px rgba(55, 138, 221, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  animation: pop 0.22s ease;
+}
+
+/* 选项点选的动态效果:弹入 + 发光 */
+@keyframes pop {
+  0% {
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* ---------- 整体布局 ---------- */
@@ -159,17 +241,50 @@ body {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  padding: 10px;
+  gap: 8px;
+}
+
+/* 顶部拖拽条:专门用于拖动窗口(hiddenInset 控制按钮浮在此区域),品牌居中 */
+.drag-strip {
+  height: 34px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: drag;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.26));
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  backdrop-filter: blur(14px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow: 0 4px 18px rgba(30, 40, 90, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.drag-strip .brand {
+  font-size: 13px;
 }
 
 .topbar {
-  height: 48px;
+  height: 44px;
   flex: none;
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 0 14px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.64), rgba(255, 255, 255, 0.2));
+  -webkit-backdrop-filter: blur(30px) saturate(2.1);
+  backdrop-filter: blur(30px) saturate(2.1);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 16px;
+  box-shadow: 0 4px 26px rgba(30, 40, 90, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* 顶部栏内的交互元素不能是拖拽区 */
+.topbar .btn,
+.topbar input,
+.topbar .project-name-box {
+  -webkit-app-region: no-drag;
 }
 
 .brand {
@@ -188,8 +303,21 @@ body {
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  background: var(--accent-soft);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.35));
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 8px rgba(30, 40, 90, 0.07);
   color: var(--accent);
+}
+
+.brand-name {
+  background: linear-gradient(135deg, #2e7bc9, #7aa8dd);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 .project-name {
@@ -200,26 +328,45 @@ body {
   flex: 1;
 }
 
+/* 项目名框:白底玻璃框,未保存红点在框内右侧,文字居中 */
+.project-name-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 360px;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.4));
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  border-radius: 9px;
+  padding: 3px 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85), 0 2px 8px rgba(30, 40, 90, 0.06);
+  transition: border-color 0.15s ease;
+}
+
+.project-name-box:focus-within {
+  border-color: var(--accent);
+}
+
 .project-name input {
   width: 100%;
-  max-width: 320px;
-  border: 1px solid transparent;
+  min-width: 0;
+  border: none;
   background: transparent;
-  border-radius: 6px;
-  padding: 5px 8px;
+  padding: 3px 0;
   font-size: 13px;
   color: var(--text);
   outline: none;
+  text-align: center;
 }
 
 .project-name input:hover {
-  border-color: var(--border);
-  background: var(--bg);
+  background: transparent;
 }
 
 .project-name input:focus {
-  border-color: var(--accent);
-  background: var(--panel);
+  background: transparent;
 }
 
 .dirty-dot {
@@ -228,6 +375,7 @@ body {
   border-radius: 50%;
   background: var(--danger);
   flex: none;
+  box-shadow: 0 0 0 2px rgba(226, 75, 74, 0.2);
 }
 
 .topbar-actions {
@@ -240,25 +388,31 @@ body {
   flex: 1;
   min-height: 0;
   display: flex;
+  gap: 10px;
 }
 
 .side-panel {
   width: 236px;
   flex: none;
-  background: var(--panel);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0.16));
+  -webkit-backdrop-filter: blur(28px) saturate(2);
+  backdrop-filter: blur(28px) saturate(2);
   padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  box-shadow: 0 10px 34px rgba(30, 40, 90, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .side-panel.left {
-  border-right: 1px solid var(--border);
+  /* 圆角卡片,无单边边框 */
 }
 
 .side-panel.right {
-  border-left: 1px solid var(--border);
+  /* 圆角卡片,无单边边框 */
 }
 
 /* ---------- 左栏工具 ---------- */
@@ -395,8 +549,8 @@ body {
 
 /* ---------- 音频导入 ---------- */
 .audio-drop {
-  border: 1px dashed var(--text-3);
-  border-radius: 8px;
+  border: 1.5px dashed rgba(120, 150, 190, 0.55);
+  border-radius: 12px;
   padding: 14px 8px;
   display: flex;
   flex-direction: column;
@@ -407,7 +561,11 @@ body {
   cursor: pointer;
   text-align: center;
   line-height: 1.5;
-  transition: border-color 0.12s ease, color 0.12s ease;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.25));
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  backdrop-filter: blur(10px) saturate(1.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
 }
 
 .audio-drop:hover {
@@ -529,7 +687,11 @@ body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 34px rgba(30, 40, 90, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
 }
 
 .canvas-toolbar {
@@ -539,8 +701,10 @@ body {
   align-items: center;
   gap: 8px;
   padding: 0 12px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.22));
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.6);
 }
 
 .canvas-pager {
@@ -637,9 +801,11 @@ body {
 
 .btn.mode.active {
   border-color: var(--accent);
-  background: var(--accent-soft);
+  background: linear-gradient(180deg, rgba(230, 241, 251, 0.9), rgba(210, 231, 250, 0.6));
   color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(55, 138, 221, 0.2), 0 4px 14px rgba(55, 138, 221, 0.25);
   font-weight: 500;
+  animation: pop 0.22s ease;
 }
 
 .ratio-grid {
@@ -653,6 +819,121 @@ body {
   width: 100%;
   padding: 8px 0;
   margin-top: 2px;
+}
+
+/* ---------- 弹窗(替换/追加) ---------- */
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 30, 50, 0.35);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-box {
+  width: 360px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.75));
+  -webkit-backdrop-filter: blur(22px) saturate(1.7);
+  backdrop-filter: blur(22px) saturate(1.7);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(30, 40, 90, 0.28), inset 0 1px 0 rgba(255, 255, 255, 1);
+}
+
+.modal-box h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.modal-box p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(55, 138, 221, 0.5);
+  background: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  outline: none;
+}
+
+.modal-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(55, 138, 221, 0.15);
+}
+
+/* ---------- 页面顺序列表 ---------- */
+.page-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.page-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+
+.page-idx {
+  font-size: 11px;
+  color: var(--text-3);
+  width: 18px;
+  flex: none;
+  text-align: center;
+}
+
+.page-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-row .btn.icon {
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.page-order-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.5;
+  margin-top: 6px;
+}
+
+.modal-page-list {
+  max-height: 260px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  padding-right: 4px;
 }
 
 /* ---------- 音频面板 ---------- */

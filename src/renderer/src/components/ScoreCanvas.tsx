@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { FileUp, Maximize2, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileUp, Layers, Maximize2, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { useStore } from '../store'
 import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, annotScale } from '../geometry'
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
 import { buildMeasures, measureAtTime } from '../videoExport'
+import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
 type DragState =
@@ -42,6 +43,50 @@ function loadImageEl(src: string): Promise<HTMLImageElement> {
   })
 }
 
+// ---------- 导入:文件 → 页面 ----------
+const SUPPORTED_EXTS = ['jpg', 'jpeg', 'png', 'pdf']
+
+interface RawScoreFile {
+  name: string
+  ext: string
+  dataUrl?: string
+  pdfData?: ArrayBuffer
+}
+
+/** 把原始文件转换为页面(图片=1页,PDF=每页一图);不支持的格式被跳过 */
+async function filesToPages(files: RawScoreFile[]): Promise<{ pages: PageImage[]; skipped: string[] }> {
+  const pages: PageImage[] = []
+  const skipped: string[] = []
+  for (const f of files) {
+    if (!SUPPORTED_EXTS.includes(f.ext)) {
+      skipped.push(f.name)
+      continue
+    }
+    if (f.ext === 'pdf' && f.pdfData) {
+      const doc = await loadPdfDoc(new Uint8Array(f.pdfData))
+      for (let p = 1; p <= doc.numPages; p++) {
+        const r = await renderPdfPageDoc(doc, p)
+        pages.push({ name: `${f.name} · 第${p}页`, dataUrl: r.dataUrl, width: r.width, height: r.height })
+      }
+      void doc.destroy()
+    } else if (f.dataUrl) {
+      const img = await loadImageEl(f.dataUrl)
+      pages.push({ name: f.name, dataUrl: f.dataUrl, width: img.naturalWidth, height: img.naturalHeight })
+    }
+  }
+  return { pages, skipped }
+}
+
+/** File(浏览器) → RawScoreFile */
+async function fileToRaw(file: File): Promise<RawScoreFile> {
+  const ext = (file.name.split('.').pop() ?? '').toLowerCase()
+  if (ext === 'pdf') {
+    return { name: file.name, ext, pdfData: await file.arrayBuffer() }
+  }
+  const dataUrl = await readAsDataURL(file)
+  return { name: file.name, ext, dataUrl }
+}
+
 export default function ScoreCanvas(): React.JSX.Element {
   const score = useStore((s) => s.score)
   const hLines = useStore((s) => s.hLines)
@@ -73,6 +118,12 @@ export default function ScoreCanvas(): React.JSX.Element {
   const jumpOpacity = useStore((s) => s.jumpOpacity)
   const nextColor = useStore((s) => s.nextColor)
   const nextOpacity = useStore((s) => s.nextOpacity)
+  const snapEnabled = useStore((s) => s.snapEnabled)
+  const measureLabel = useStore((s) => s.measureLabel)
+  const setMeasureLabel = useStore((s) => s.setMeasureLabel)
+  const scorePages = useStore((s) => s.scorePages)
+  const reorderScorePage = useStore((s) => s.reorderScorePage)
+  const removeScorePage = useStore((s) => s.removeScorePage)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -82,69 +133,76 @@ export default function ScoreCanvas(): React.JSX.Element {
   const [dragOver, setDragOver] = useState(false)
   /** 鼠标悬停位置(图片坐标),用于虚拟预览线 */
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null)
+  /** 识别出的五线谱小节线位置(每行一个列表),吸附用 */
+  const [detectLines, setDetectLines] = useState<number[][] | null>(null)
+  /** 正在修改编号的小节 */
+  const [editNumber, setEditNumber] = useState<Measure | null>(null)
+  const editInputRef = useRef<HTMLInputElement>(null)
+  /** 页面顺序弹窗 */
+  const [pageOrderOpen, setPageOrderOpen] = useState(false)
 
-  // ---------- 导入(多文件合并) ----------
-  const loadScoreFiles = useCallback(
-    async (files: File[]) => {
-      const pages: PageImage[] = []
-      let kind: ScoreSource['kind'] = 'image'
-      let firstName = ''
-      for (const f of files) {
-        const ext = (f.name.split('.').pop() ?? '').toLowerCase()
-        if (['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(ext)) {
-          const dataUrl = await readAsDataURL(f)
-          const img = await loadImageEl(dataUrl)
-          pages.push({ dataUrl, width: img.naturalWidth, height: img.naturalHeight })
-          if (!firstName) firstName = f.name
-        } else if (ext === 'pdf') {
-          kind = 'pdf'
-          const doc = await loadPdfDoc(new Uint8Array(await f.arrayBuffer()))
-          for (let p = 1; p <= doc.numPages; p++) {
-            const r = await renderPdfPageDoc(doc, p)
-            pages.push({ dataUrl: r.dataUrl, width: r.width, height: r.height })
-          }
-          void doc.destroy()
-          if (!firstName) firstName = f.name
-        }
+  // ---------- 导入(多文件/追加/替换) ----------
+  const [askPdf, setAskPdf] = useState<PageImage[] | null>(null)
+
+  const applyImport = useCallback(async (pages: PageImage[], hasPdf: boolean): Promise<void> => {
+    const st = useStore.getState()
+    if (!st.score) {
+      // 首次导入:直接显示
+      await st.setScorePages(pages)
+      return
+    }
+    if (hasPdf) {
+      // 已有曲谱 + PDF:弹窗选择"替换 / 追加到下方"
+      setAskPdf(pages)
+      return
+    }
+    // 已有曲谱 + 图片:追加到下方(不顶替)
+    await st.setScorePages([...st.scorePages, ...pages])
+  }, [])
+
+  const handleImport = useCallback(
+    async (rawFiles: RawScoreFile[]): Promise<void> => {
+      if (rawFiles.length === 0) return
+      const { pages, skipped } = await filesToPages(rawFiles)
+      if (skipped.length) {
+        window.alert(`以下文件不是支持的格式(仅 jpg/png/pdf),已跳过:\n${skipped.join('\n')}`)
       }
       if (pages.length === 0) return
-      const merged = await mergePages(pages)
-      setScore({
-        kind,
-        name: files.length > 1 ? `${firstName} 等 ${files.length} 个文件` : firstName,
-        dataUrl: merged.dataUrl,
-        width: merged.width,
-        height: merged.height
-      })
+      const hasPdf = rawFiles.some((f) => f.ext === 'pdf')
+      await applyImport(pages, hasPdf)
     },
-    [setScore]
+    [applyImport]
+  )
+
+  /** 浏览器 File 导入(文件选择/拖拽) */
+  const importBrowserFiles = useCallback(
+    async (files: File[]): Promise<void> => {
+      const raws: RawScoreFile[] = []
+      for (const f of files) raws.push(await fileToRaw(f))
+      await handleImport(raws)
+    },
+    [handleImport]
   )
 
   const pickFile = useCallback(() => {
     if (window.api?.isElectron) {
       window.api.openScoreFile().then(async (r) => {
-        if (!r) return
-        if (r.ext === 'pdf') {
-          const doc = await loadPdfDoc(base64ToUint8(r.dataBase64))
-          const pages: PageImage[] = []
-          for (let p = 1; p <= doc.numPages; p++) {
-            const pr = await renderPdfPageDoc(doc, p)
-            pages.push({ dataUrl: pr.dataUrl, width: pr.width, height: pr.height })
+        if (!r || !r.files.length) return
+        const raws: RawScoreFile[] = []
+        for (const f of r.files) {
+          if (f.ext === 'pdf') {
+            raws.push({ name: f.name, ext: f.ext, pdfData: base64ToUint8(f.dataBase64).buffer as ArrayBuffer })
+          } else {
+            const mime = f.ext === 'jpg' ? 'jpeg' : 'png'
+            raws.push({ name: f.name, ext: f.ext, dataUrl: `data:image/${mime};base64,${f.dataBase64}` })
           }
-          void doc.destroy()
-          const merged = await mergePages(pages)
-          setScore({ kind: 'pdf', name: r.name, path: r.path, dataUrl: merged.dataUrl, width: merged.width, height: merged.height })
-        } else {
-          const mime = r.ext === 'jpg' ? 'jpeg' : r.ext === 'svg' ? 'svg+xml' : r.ext
-          const dataUrl = `data:image/${mime};base64,${r.dataBase64}`
-          const img = await loadImageEl(dataUrl)
-          setScore({ kind: 'image', name: r.name, path: r.path, dataUrl, width: img.naturalWidth, height: img.naturalHeight })
         }
+        await handleImport(raws)
       })
     } else {
       fileInputRef.current?.click()
     }
-  }, [setScore])
+  }, [handleImport])
 
   // ---------- 视口:铺满宽度 + 垂直滚动 ----------
   const fitWidth = useCallback(() => {
@@ -184,8 +242,8 @@ export default function ScoreCanvas(): React.JSX.Element {
     const loop = (): void => {
       const st = useStore.getState()
       const el = cursorLineRef.current
+      // 跳框模式:无光标线(连续模式下对点完成后始终显示,便于预览)
       if (st.videoMode === 'jump') {
-        // 跳框模式:无光标线
         if (el) el.setAttribute('visibility', 'hidden')
         raf = requestAnimationFrame(loop)
         return
@@ -218,6 +276,38 @@ export default function ScoreCanvas(): React.JSX.Element {
     return () => cancelAnimationFrame(raf)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [score, hLines, vLines, measureTimes])
+
+  // ---------- 识别五线谱小节线(吸附目标;导入曲谱/画横线时重检测) ----------
+  useEffect(() => {
+    if (!score) {
+      setDetectLines(null)
+      return
+    }
+    let cancel = false
+    void (async () => {
+      const img = await loadImageEl(score.dataUrl).catch(() => null)
+      if (cancel || !img) return
+      const rows: { top: number; bottom: number }[] = []
+      const cnt = rowCount(hLines)
+      for (let r = 0; r < cnt; r++) {
+        const [t, b] = rowBounds(hLines, r, score.height)
+        rows.push({ top: t, bottom: b })
+      }
+      if (rows.length === 0) {
+        setDetectLines([])
+        return
+      }
+      const fullXs = vLines.filter((v) => v.kind === 'full').map((v) => v.x)
+      const left = fullXs.length ? Math.min(...fullXs) : 0
+      const right = fullXs.length ? Math.max(...fullXs) : score.width
+      const res = await detectMeasureLines(img, rows, left, right)
+      if (!cancel) setDetectLines(res)
+    })()
+    return () => {
+      cancel = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score?.dataUrl, hLines])
 
   // ---------- 坐标与命中 ----------
   const toImage = (e: React.MouseEvent): { x: number; y: number } => {
@@ -258,18 +348,48 @@ export default function ScoreCanvas(): React.JSX.Element {
     []
   )
 
+  /** 某行的吸附目标:识别的印刷小节线 + 该行已画的竖线(绝不跨行) */
+  const snapTargetsForRow = (row: number): number[] => {
+    const detected = detectLines?.[row] ?? []
+    const own = vLines.filter((v) => v.kind === 'measure' && v.row === row).map((v) => v.x)
+    return [...detected, ...own]
+  }
+
   const onMouseDown = (e: React.MouseEvent): void => {
     if (e.button !== 0 || !score) return
     const { x, y } = toImage(e)
     if (tool === 'hline') {
-      addHLine(Math.round(y))
+      // 画线落点应用吸附(实时读取开关状态,避免闭包过期)
+      const snapNow = useStore.getState().snapEnabled
+      let yy = y
+      if (snapNow) {
+        const hv = nearestHLine(hLines, y, 24 / scale)
+        if (hv !== null) yy = sortedLines(hLines)[hv]
+      }
+      addHLine(Math.round(yy))
       return
     }
     if (tool === 'vline') {
       // 无横线时自动画贯穿线(左右边框);有横线时默认画行内小节线,Shift 强制贯穿
       const kind: 'full' | 'measure' = hLines.length === 0 || e.shiftKey ? 'full' : 'measure'
       const row = kind === 'full' ? 0 : rowAt(hLines, y, score.height)
-      addVLine(Math.round(x), row, kind)
+      const snapNow = useStore.getState().snapEnabled
+      let xx = x
+      if (snapNow) {
+        const tol = 24 / scale
+        const targets = kind === 'full' ? vLines.filter((v) => v.kind === 'full').map((v) => v.x) : snapTargetsForRow(row)
+        let best: number | null = null
+        let bestDist = Infinity
+        for (const tx of targets) {
+          const d = Math.abs(tx - x)
+          if (d < bestDist) {
+            bestDist = d
+            best = tx
+          }
+        }
+        if (best !== null && bestDist <= tol) xx = best
+      }
+      addVLine(Math.round(xx), row, kind)
       return
     }
     if (tool === 'select') {
@@ -325,23 +445,28 @@ export default function ScoreCanvas(): React.JSX.Element {
     setDrag(null)
   }
 
-  // ---------- 虚拟预览线(带吸附) ----------
-  const snapTol = 12 / scale
+  // ---------- 虚拟预览线(自动吸附可开关) ----------
+  // 容差 24 屏幕像素(转换为图片坐标),比之前 12px 更灵敏
+  const snapTol = 24 / scale
   const previewY = (() => {
     if (!hover) return null
+    if (!snapEnabled) return hover.y
     const hv = nearestHLine(hLines, hover.y, snapTol)
     return hv !== null ? sortedLines(hLines)[hv] : hover.y
   })()
   const previewX = (() => {
     if (!hover) return null
-    // 找最近的任意竖线(x 方向)
+    if (!snapEnabled || !score) return hover.x
+    // 吸附到当前行的识别小节线 + 已画竖线(不跨行)
+    const row = rowAt(hLines, hover.y, score.height)
+    const targets = snapTargetsForRow(row)
     let best: number | null = null
     let bestDist = Infinity
-    for (const v of vLines) {
-      const d = Math.abs(v.x - hover.x)
+    for (const tx of targets) {
+      const d = Math.abs(tx - hover.x)
       if (d < bestDist) {
         bestDist = d
-        best = v.x
+        best = tx
       }
     }
     return best !== null && bestDist <= snapTol ? best : hover.x
@@ -379,6 +504,29 @@ export default function ScoreCanvas(): React.JSX.Element {
   }
 
   const cursor = tool === 'select' ? 'default' : tool === 'hline' ? 'row-resize' : tool === 'vline' ? 'col-resize' : 'default'
+
+  /** 确认修改编号:输入新编号,该小节及之后重新连续编号(仅显示标签,不影响对点数据) */
+  const applyRenumber = (m: Measure, newStart: number): void => {
+    const idx = measures.findIndex((mm) => mm.n === m.n)
+    if (idx < 0) return
+    const next: Record<number, number> = { ...measureLabel }
+    for (let j = idx; j < measures.length; j++) {
+      next[measures[j].n] = newStart + (j - idx)
+    }
+    setMeasureLabel(next)
+    setEditNumber(null)
+  }
+
+  const confirmEditNumber = (): void => {
+    if (!editNumber) return
+    const v = parseInt(editInputRef.current?.value ?? '', 10)
+    if (!Number.isFinite(v) || v < 1) {
+      window.alert('请输入 ≥1 的整数')
+      return
+    }
+    applyRenumber(editNumber, v)
+  }
+
   /** 标注缩放系数:线宽/字号/标记尺寸随曲谱宽度同步放大 */
   const k = score ? annotScale(score.width) : 1
   const lw = lineWidth * k
@@ -393,15 +541,20 @@ export default function ScoreCanvas(): React.JSX.Element {
         <button className="btn primary" onClick={pickFile}>
           <FileUp size={14} /> 导入曲谱
         </button>
+        {scorePages.length > 1 && (
+          <button className="btn" onClick={() => setPageOrderOpen(true)} title="调整页面顺序">
+            <Layers size={14} /> 页面顺序
+          </button>
+        )}
         <input
           ref={fileInputRef}
           type="file"
-          accept=".jpg,.jpeg,.png,.webp,.bmp,.pdf"
+          accept=".jpg,.jpeg,.png,.pdf"
           multiple
           style={{ display: 'none' }}
           onChange={(e) => {
             const files = Array.from(e.target.files ?? [])
-            if (files.length) void loadScoreFiles(files)
+            if (files.length) void importBrowserFiles(files)
             e.target.value = ''
           }}
         />
@@ -437,11 +590,19 @@ export default function ScoreCanvas(): React.JSX.Element {
           setDragOver(true)
         }}
         onDragLeave={() => setDragOver(false)}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          if (!score) return
+          const { x, y } = toImage(e)
+          const n = measureNumberAt(x, y)
+          const m = n !== null ? measures.find((mm) => mm.n === n) : undefined
+          if (m) setEditNumber(m)
+        }}
         onDrop={(e) => {
           e.preventDefault()
           setDragOver(false)
           const files = Array.from(e.dataTransfer.files ?? [])
-          if (files.length) void loadScoreFiles(files)
+          if (files.length) void importBrowserFiles(files)
         }}
       >
         {score ? (
@@ -533,6 +694,24 @@ export default function ScoreCanvas(): React.JSX.Element {
                         rx={2 * k}
                       />
                     ))}
+                {/* 识别出的印刷小节线(淡绿虚线,吸附开启时显示吸附目标) */}
+                {snapEnabled &&
+                  detectLines?.map((xs, r) => {
+                    const [dt, db] = rowBounds(hLines, r, score.height)
+                    return xs.map((lx, i) => (
+                      <line
+                        key={`det${r}-${i}`}
+                        x1={lx}
+                        y1={dt}
+                        x2={lx}
+                        y2={db}
+                        stroke="rgba(70,200,120,0.5)"
+                        strokeWidth={1.5 * k}
+                        strokeDasharray={`${4 * k} ${3 * k}`}
+                        pointerEvents="none"
+                      />
+                    ))
+                  })}
                 {/* 横线(截断在左右边框之间,无边框则全宽) */}
                 {sortedLines(hLines).map((y, i) => (
                   <line
@@ -621,8 +800,14 @@ export default function ScoreCanvas(): React.JSX.Element {
                         fontSize={13 * k}
                         fontWeight={500}
                         fill="#0C447C"
+                        cursor="pointer"
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setEditNumber(m)
+                        }}
                       >
-                        {m.n}
+                        {measureLabel[m.n] ?? m.n}
                       </text>
                       {t !== undefined && (
                         <text
@@ -679,6 +864,126 @@ export default function ScoreCanvas(): React.JSX.Element {
           </div>
         )}
       </div>
+
+      {/* PDF 追加/替换弹窗 */}
+      {askPdf && (
+        <div className="modal-mask" onClick={() => setAskPdf(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h4>PDF 导入</h4>
+            <p>
+              当前已有曲谱。新增的 PDF（{askPdf.length} 页）如何处理？
+            </p>
+            <div className="modal-actions">
+              <button
+                className="btn"
+                onClick={async () => {
+                  const st = useStore.getState()
+                  await st.setScorePages([...st.scorePages, ...askPdf])
+                  setAskPdf(null)
+                }}
+              >
+                追加到下方
+              </button>
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  await useStore.getState().setScorePages(askPdf)
+                  setAskPdf(null)
+                }}
+              >
+                替换当前曲谱
+              </button>
+              <button className="btn" onClick={() => setAskPdf(null)}>
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 修改小节编号弹窗 */}
+      {editNumber && (
+        <div className="modal-mask" onClick={() => setEditNumber(null)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h4>修改小节编号</h4>
+            <p>
+              当前编号「{measureLabel[editNumber.n] ?? editNumber.n}」。输入新编号,该小节及之后将按新编号重新连续排列:
+            </p>
+            <input
+              ref={editInputRef}
+              className="modal-input"
+              type="number"
+              min={1}
+              defaultValue={measureLabel[editNumber.n] ?? editNumber.n}
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') confirmEditNumber()
+                if (e.key === 'Escape') setEditNumber(null)
+              }}
+            />
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setEditNumber(null)}>
+                取消
+              </button>
+              <button className="btn primary" onClick={confirmEditNumber}>
+                确定
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 页面顺序弹窗 */}
+      {pageOrderOpen && (
+        <div className="modal-mask" onClick={() => setPageOrderOpen(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <h4>页面顺序</h4>
+            <p>上移/下移调整顺序,或删除页面。调整后会重新合并长图,需重新分割乐谱。</p>
+            <div className="page-list modal-page-list">
+              {scorePages.map((pg, i) => (
+                <div className="page-row" key={`${pg.name ?? i}-${i}`}>
+                  <span className="page-idx">{i + 1}</span>
+                  <span className="page-name" title={pg.name}>
+                    {pg.name ?? `第 ${i + 1} 页`}
+                  </span>
+                  <button
+                    className="btn icon"
+                    disabled={i === 0}
+                    title="上移"
+                    onClick={() => void reorderScorePage(i, i - 1)}
+                  >
+                    <ChevronUp size={13} />
+                  </button>
+                  <button
+                    className="btn icon"
+                    disabled={i === scorePages.length - 1}
+                    title="下移"
+                    onClick={() => void reorderScorePage(i, i + 1)}
+                  >
+                    <ChevronDown size={13} />
+                  </button>
+                  <button
+                    className="btn icon"
+                    title="删除此页"
+                    onClick={() => {
+                      if (window.confirm(`删除页面「${pg.name ?? `第 ${i + 1} 页`}」?`)) {
+                        void removeScorePage(i)
+                      }
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="modal-actions">
+              <button className="btn primary" onClick={() => setPageOrderOpen(false)}>
+                完成
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -17,6 +17,10 @@ function createWindow(): void {
     minWidth: 1100,
     minHeight: 700,
     title: '动态曲谱工作台',
+    // 隐藏原生标题栏:窗口控制按钮(红黄绿)浮在内容上,融入液态玻璃界面
+    titleBarStyle: 'hiddenInset',
+    // 调整控制按钮位置:靠左,垂直方向在拖拽条内居中
+    trafficLightPosition: { x: 22, y: 19 },
     backgroundColor: '#f5f5f2',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -58,26 +62,28 @@ app.on('child-process-gone', (_e, details) => {
   console.error('[crash] child gone:', details.type, details.reason)
 })
 
-// ---------- IPC: 导入曲谱文件 ----------
+// ---------- IPC: 导入曲谱文件(支持多选) ----------
 ipcMain.handle('dialog:openScore', async () => {
   const r = await dialog.showOpenDialog({
-    title: '导入曲谱',
-    properties: ['openFile'],
+    title: '导入曲谱(可多选 jpg/png/pdf)',
+    properties: ['openFile', 'multiSelections'],
     filters: [
-      { name: '曲谱文件', extensions: ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'bmp'] },
-      { name: '图片', extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'] },
-      { name: 'PDF', extensions: ['pdf'] }
+      { name: '曲谱文件', extensions: ['pdf', 'jpg', 'jpeg', 'png'] },
+      { name: '所有文件', extensions: ['*'] }
     ]
   })
-  if (r.canceled || !r.filePaths[0]) return null
-  const p = r.filePaths[0]
-  const buf = await readFile(p)
-  return {
-    path: p,
-    name: basename(p),
-    ext: extname(p).toLowerCase().replace('.', ''),
-    dataBase64: buf.toString('base64')
+  if (r.canceled || !r.filePaths.length) return null
+  const files: { path: string; name: string; ext: string; dataBase64: string }[] = []
+  for (const p of r.filePaths) {
+    const buf = await readFile(p)
+    files.push({
+      path: p,
+      name: basename(p),
+      ext: extname(p).toLowerCase().replace('.', ''),
+      dataBase64: buf.toString('base64')
+    })
   }
+  return { files }
 })
 
 // ---------- 项目文件 AES 加密(保存时加密,打开时解密) ----------

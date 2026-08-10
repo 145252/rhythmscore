@@ -6,7 +6,7 @@ import AudioPanel from './AudioPanel'
 const TOOL_HINTS: Record<string, string> = {
   hline: '横线模式:点击每一行谱表的上下边界。横线会自动截断在左右边框竖线之间',
   vline: '竖线模式:① 无横线时点击 = 画贯穿全图的边框线(左右各一条);② 有横线后点击 = 画行内小节线;按住 Shift 可强制画贯穿线',
-  select: '选择模式:点线可拖动微调 / 点小节空白处可选中该小节 / Delete 删除',
+  select: '选择模式:点线可拖动微调 / 点小节空白处可选中该小节 / Delete 删除 / 右键小节可改编号',
   pan: '使用滚轮上下滚动浏览曲谱'
 }
 
@@ -17,6 +17,8 @@ export default function LeftPanel(): React.JSX.Element {
   const setLineWidth = useStore((s) => s.setLineWidth)
   const clearHLines = useStore((s) => s.clearHLines)
   const clearVLines = useStore((s) => s.clearVLines)
+  const snapEnabled = useStore((s) => s.snapEnabled)
+  const setSnapEnabled = useStore((s) => s.setSnapEnabled)
 
   const tools = [
     { id: 'hline' as const, icon: <Minus size={16} />, label: '横线' },
@@ -55,6 +57,14 @@ export default function LeftPanel(): React.JSX.Element {
           />
           <span className="lv">{lineWidth}px</span>
         </div>
+
+        <label className="marking-toggle">
+          <span>自动吸附</span>
+          <input type="checkbox" checked={snapEnabled} onChange={(e) => setSnapEnabled(e.target.checked)} />
+          <span className="toggle-track">
+            <span className="toggle-thumb" />
+          </span>
+        </label>
 
         <div className="line-actions">
           <button className="btn subtle" onClick={clearVLines}>

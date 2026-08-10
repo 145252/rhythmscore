@@ -4,6 +4,8 @@
  */
 
 export interface PageImage {
+  /** 页面名称(显示在页面列表) */
+  name?: string
   dataUrl: string
   width: number
   height: number

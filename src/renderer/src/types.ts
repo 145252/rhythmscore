@@ -31,10 +31,14 @@ export interface ProjectFile {
   version: 1
   name: string
   score: ScoreSource | null
+  /** 多页曲谱(顺序即显示顺序) */
+  scorePages?: { name?: string; dataUrl: string; width: number; height: number }[]
   hLines: number[]
   vLines: VLine[]
   /** 音频对点:小节编号 → 音频时间(秒) */
   measureTimes?: Record<number, number>
+  /** 小节自定义编号(原始编号 → 显示编号) */
+  measureLabel?: Record<number, number>
   /** 音频内容(随项目保存,打开后自动恢复,无需重新导入) */
   audio?: { name: string; dataUrl: string } | null
 }

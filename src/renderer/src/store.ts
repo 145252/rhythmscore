@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { ProjectFile, ScoreSource, Selected, Tool, VLine } from './types'
+import { mergePages, type PageImage } from './merge'
 
 let uid = 0
 function genId(): string {
@@ -12,6 +13,8 @@ interface EditorState {
   dirty: boolean
 
   score: ScoreSource | null
+  /** 多页曲谱(按顺序合并为长图;顺序可调整) */
+  scorePages: PageImage[]
   hLines: number[]
   vLines: VLine[]
 
@@ -41,6 +44,10 @@ interface EditorState {
   markingTarget: number | null
 
   setScore: (s: ScoreSource | null) => void
+  /** 设置多页曲谱:按页顺序合并为长图;页变化会清空标注(提示重新分割) */
+  setScorePages: (pages: PageImage[]) => Promise<void>
+  reorderScorePage: (from: number, to: number) => Promise<void>
+  removeScorePage: (idx: number) => Promise<void>
   addHLine: (y: number) => void
   addVLine: (x: number, row: number, kind?: 'full' | 'measure') => void
   updateHLine: (sortedIdx: number, y: number) => void
@@ -53,6 +60,13 @@ interface EditorState {
   setLineWidth: (w: number) => void
   setSelected: (s: Selected | null) => void
   setScale: (s: number) => void
+
+  /** 标线自动吸附开关(默认开) */
+  snapEnabled: boolean
+  setSnapEnabled: (b: boolean) => void
+  /** 小节自定义编号(原始编号 → 显示编号;缺省显示原始编号) */
+  measureLabel: Record<number, number>
+  setMeasureLabel: (m: Record<number, number>) => void
 
   setAudio: (name: string, dataUrl: string) => void
   clearAudio: () => void
@@ -98,6 +112,7 @@ export const useStore = create<EditorState>((set, get) => ({
   score: null,
   hLines: [],
   vLines: [],
+  scorePages: [],
 
   tool: 'hline',
   lineWidth: 2,
@@ -127,6 +142,45 @@ export const useStore = create<EditorState>((set, get) => ({
   nextOpacity: 0.07,
 
   setScore: (s) => set({ score: s, dirty: true }),
+  setScorePages: async (pages) => {
+    if (pages.length === 0) {
+      set({ score: null, scorePages: [], hLines: [], vLines: [], selected: null, dirty: true })
+      return
+    }
+    const merged = await mergePages(pages)
+    set({
+      scorePages: pages,
+      score: {
+        kind: 'image',
+        name: '合并曲谱',
+        dataUrl: merged.dataUrl,
+        width: merged.width,
+        height: merged.height
+      },
+      // 合并图尺寸/内容变化,旧标注坐标失效 → 清空,提示重新分割
+      hLines: [],
+      vLines: [],
+      selected: null,
+      measureTimes: {},
+      measureBaseTimes: {},
+      currentMeasure: null,
+      scale: 1,
+      dirty: true
+    })
+  },
+  reorderScorePage: async (from, to) => {
+    const pages = [...useStore.getState().scorePages]
+    if (from < 0 || from >= pages.length || to < 0 || to >= pages.length || from === to) return
+    const [item] = pages.splice(from, 1)
+    pages.splice(to, 0, item)
+    await useStore.getState().setScorePages(pages)
+  },
+  removeScorePage: async (idx) => {
+    const pages = [...useStore.getState().scorePages]
+    if (idx < 0 || idx >= pages.length) return
+    pages.splice(idx, 1)
+    await useStore.getState().setScorePages(pages)
+  },
   addHLine: (y) => {
     const s = get()
     const exists = s.hLines.some((v) => Math.abs(v - y) < 6)
@@ -171,6 +225,11 @@ export const useStore = create<EditorState>((set, get) => ({
   setSelected: (s) => set({ selected: s }),
   setScale: (s) => set({ scale: s }),
 
+  snapEnabled: false,
+  setSnapEnabled: (b) => set({ snapEnabled: b }),
+  measureLabel: {},
+  setMeasureLabel: (m) => set({ measureLabel: m, dirty: true }),
+
   setAudio: (name, dataUrl) =>
     set({ audioName: name, audioDataUrl: dataUrl, isPlaying: false, currentTime: 0, dirty: true }),
   clearAudio: () =>
@@ -210,9 +269,11 @@ export const useStore = create<EditorState>((set, get) => ({
       version: 1,
       name: s.projectName,
       score: s.score,
+      scorePages: s.scorePages,
       hLines: s.hLines,
       vLines: s.vLines,
       measureTimes: Object.keys(s.measureTimes).length ? s.measureTimes : undefined,
+      measureLabel: Object.keys(s.measureLabel).length ? s.measureLabel : undefined,
       audio:
         s.audioDataUrl && s.audioName
           ? { name: s.audioName, dataUrl: s.audioDataUrl }
@@ -223,6 +284,7 @@ export const useStore = create<EditorState>((set, get) => ({
     set({
       projectName: p.name || '未命名曲谱',
       score: p.score ?? null,
+      scorePages: p.scorePages ?? [],
       hLines: p.hLines ?? [],
       vLines: (p.vLines ?? []).map((v) => ({ ...v, kind: v.kind ?? ('measure' as const) })),
       selected: null,
@@ -230,6 +292,7 @@ export const useStore = create<EditorState>((set, get) => ({
       scale: 1,
       measureTimes: p.measureTimes ?? {},
       measureBaseTimes: p.measureTimes ?? {},
+      measureLabel: p.measureLabel ?? {},
       // 恢复音频(打开后自动加载,无需重新导入)
       audioName: p.audio?.name ?? null,
       audioDataUrl: p.audio?.dataUrl ?? null,
@@ -248,6 +311,7 @@ export const useStore = create<EditorState>((set, get) => ({
       projectName: '未命名曲谱',
       dirty: false,
       score: null,
+      scorePages: [],
       hLines: [],
       vLines: [],
       selected: null,
@@ -261,6 +325,7 @@ export const useStore = create<EditorState>((set, get) => ({
       currentMeasure: null,
       measureTimes: {},
       measureBaseTimes: {},
+      measureLabel: {},
       marking: false,
       markingTarget: null
     })
