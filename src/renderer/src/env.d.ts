@@ -29,8 +29,11 @@ interface WorkbuddyApi {
     webmBase64: string
     defaultName: string
     splitMeasures?: ExportSegmentSpec[]
+    lowQuality?: boolean
   }) => Promise<ExportVideoResult>
   onMenuAction: (cb: (action: 'open-project' | 'save-project') => void) => void
+  getMachineCode: () => Promise<string>
+  activateLicense: (key: string) => Promise<{ ok: boolean; machine: string }>
 }
 
 interface Window {

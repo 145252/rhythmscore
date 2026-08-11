@@ -1411,3 +1411,69 @@ body.dark .measure-nav,
 body.dark .canvas-pager {
   color: #c9d3e5;
 }
+
+/* ---------- 专业版授权 ---------- */
+.pro-card {
+  background: linear-gradient(160deg, rgba(123, 92, 240, 0.16), rgba(75, 152, 231, 0.06));
+  border-color: rgba(140, 130, 255, 0.35);
+}
+
+.pro-num {
+  background: linear-gradient(135deg, #f59e0b, #ff5e8a) !important;
+  color: #fff !important;
+  border: none !important;
+}
+
+.pro-btn {
+  width: 100%;
+  margin-top: 12px;
+  background: linear-gradient(135deg, #f59e0b, #ff5e8a);
+  border-color: rgba(255, 120, 80, 0.6);
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.pro-btn:hover {
+  background: linear-gradient(135deg, #f09c0a, #f04d78);
+}
+
+.pro-ok {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #4be08c;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.machine-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 10px;
+}
+
+.machine-row code {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: var(--text);
+  word-break: break-all;
+}
+
+body.dark .machine-row code {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #dfe6f2;
+}
+
+.pro-err {
+  font-size: 12px;
+  margin-top: 8px;
+  color: #ff8f8d;
+}

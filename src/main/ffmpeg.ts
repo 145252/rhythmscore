@@ -35,6 +35,11 @@ export interface SegmentSpec {
   end: number
 }
 
+export interface ExportOpts {
+  /** 免费版:降低清晰度(转码时缩到 720p 高度),刺激付费 */
+  lowQuality?: boolean
+}
+
 export interface ExportResult {
   mainPath: string
   segments: string[]
@@ -46,19 +51,22 @@ export interface ExportResult {
  * @param destPath 整片保存路径(仅整片模式)
  * @param destDir 片段保存目录(切片模式)
  * @param segments 小节切片表(可选)
+ * @param opts 导出选项(免费版降清晰度)
  */
 export async function exportVideo(
   webmData: Uint8Array,
   destPath: string,
   destDir: string | null,
-  segments: SegmentSpec[]
+  segments: SegmentSpec[],
+  opts: ExportOpts = {}
 ): Promise<ExportResult> {
   const tmp = await mkdtemp(join(tmpdir(), 'dscore-'))
   const webmPath = join(tmp, 'raw.webm')
   const mp4Path = join(tmp, 'full.mp4')
   await writeFile(webmPath, webmData)
 
-  // 转码:webm(vp9/vp8+opus) → mp4(h264+aac),高保真(crf 17)
+  // 转码:webm(vp9/vp8+opus) → mp4(h264+aac);免费版缩到 720p 降清晰度
+  const vf = opts.lowQuality ? ['-vf', 'scale=-2:720'] : []
   await runFfmpeg([
     '-y',
     '-i', webmPath,
@@ -66,6 +74,7 @@ export async function exportVideo(
     '-preset', 'medium',
     '-crf', '17',
     '-pix_fmt', 'yuv420p',
+    ...vf,
     '-c:a', 'aac',
     '-b:a', '192k',
     '-shortest',

@@ -59,6 +59,8 @@ export interface RenderData {
   cursorWidth: number
   /** 光标线浓度(0.2~1,颜色深浅) */
   cursorOpacity: number
+  /** 免费版:导出时叠加动态移动水印(专业版 false) */
+  watermark: boolean
   /** 跳框模式高亮颜色 */
   jumpColor: string
   /** 跳框模式当前小节填充浓度(0~1) */
@@ -331,6 +333,28 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
 
   ctx.textAlign = 'start'
   ctx.textBaseline = 'alphabetic'
+
+  // ---- 免费版水印:动态斜向移动 + 深描边白字(深浅背景都可见,防裁剪) ----
+  if (data.watermark) {
+    const f = Math.max(W, H)
+    ctx.save()
+    ctx.font = `700 ${Math.round(f * 0.032)}px -apple-system, "PingFang SC", sans-serif`
+    const tw = ctx.measureText('RhythmScore').width
+    const th = f * 0.038
+    const spanX = Math.max(W - tw, 1)
+    const spanY = Math.max(H - th, 1)
+    const px = spanX * 0.12 + ((t * 0.055 * spanX) % spanX)
+    const py = spanY * 0.1 + ((t * 0.042 * spanY) % spanY)
+    ctx.translate(px, py)
+    ctx.rotate(-0.12)
+    ctx.lineJoin = 'round'
+    ctx.strokeStyle = 'rgba(15,25,45,0.4)'
+    ctx.lineWidth = Math.max(2.5, f * 0.004)
+    ctx.strokeText('RhythmScore', 0, 0)
+    ctx.fillStyle = 'rgba(255,255,255,0.55)'
+    ctx.fillText('RhythmScore', 0, 0)
+    ctx.restore()
+  }
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {

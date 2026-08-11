@@ -28,6 +28,7 @@ const api = {
     webmBase64: string
     defaultName: string
     splitMeasures?: SegmentSpec[]
+    lowQuality?: boolean
   }): Promise<{
     canceled: boolean
     error?: string
@@ -38,7 +39,12 @@ const api = {
   onMenuAction: (cb: (action: 'open-project' | 'save-project') => void) => {
     ipcRenderer.on('menu:open-project', () => cb('open-project'))
     ipcRenderer.on('menu:save-project', () => cb('save-project'))
-  }
+  },
+  /** 获取本机机器码(激活专业版用) */
+  getMachineCode: (): Promise<string> => ipcRenderer.invoke('license:get-machine'),
+  /** 验证激活码:成功返回 ok=true,失败 ok=false */
+  activateLicense: (key: string): Promise<{ ok: boolean; machine: string }> =>
+    ipcRenderer.invoke('license:activate', key)
 }
 
 contextBridge.exposeInMainWorld('api', api)

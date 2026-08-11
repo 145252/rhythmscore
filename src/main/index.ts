@@ -3,6 +3,7 @@ import { join, basename, extname } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto'
 import { exportVideo, type SegmentSpec } from './ffmpeg'
+import { machineCode, verifyLicense } from './license'
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL
 
@@ -228,6 +229,15 @@ ipcMain.handle('project:open', async () => {
   return { path: r.filePaths[0], content: plain !== null ? plain : raw }
 })
 
+// ---------- IPC: 授权(机器码 / 激活码验证) ----------
+ipcMain.handle('license:get-machine', () => machineCode())
+
+ipcMain.handle('license:activate', (_e, key: string) => {
+  const machine = machineCode()
+  const ok = verifyLicense(String(key ?? ''), machine)
+  return { ok, machine }
+})
+
 // ---------- IPC: 视频导出(webm → mp4 + 小节切片) ----------
 ipcMain.handle(
   'video:export',
@@ -237,11 +247,13 @@ ipcMain.handle(
       webmBase64: string
       defaultName: string
       splitMeasures?: SegmentSpec[]
+      lowQuality?: boolean
     }
   ) => {
     try {
       const buf = Buffer.from(payload.webmBase64, 'base64')
       const segments = payload.splitMeasures ?? []
+      const opts = { lowQuality: payload.lowQuality === true }
       if (segments.length > 0) {
         // 切片模式:选择输出目录
         const r = await dialog.showOpenDialog({
@@ -249,7 +261,7 @@ ipcMain.handle(
           properties: ['openDirectory', 'createDirectory']
         })
         if (r.canceled || !r.filePaths[0]) return { canceled: true }
-        const res = await exportVideo(buf, '', r.filePaths[0], segments)
+        const res = await exportVideo(buf, '', r.filePaths[0], segments, opts)
         return { canceled: false, ...res }
       }
       // 整片模式:选择保存文件
@@ -259,7 +271,7 @@ ipcMain.handle(
         filters: [{ name: 'MP4 视频', extensions: ['mp4'] }]
       })
       if (r.canceled || !r.filePath) return { canceled: true }
-      const res = await exportVideo(buf, r.filePath, null, [])
+      const res = await exportVideo(buf, r.filePath, null, [], opts)
       return { canceled: false, ...res }
     } catch (err) {
       return { canceled: false, error: err instanceof Error ? err.message : String(err) }

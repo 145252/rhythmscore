@@ -14,6 +14,10 @@ interface EditorState {
   /** 界面主题:system=跟随系统 / light=白天 / dark=黑夜;持久化到 localStorage */
   theme: 'system' | 'light' | 'dark'
   setTheme: (t: 'system' | 'light' | 'dark') => void
+  /** 专业版授权状态(离线激活码) */
+  licensed: boolean
+  licenseKey: string | null
+  setLicensed: (b: boolean, key: string | null) => void
 
   score: ScoreSource | null
   /** 多页曲谱(按顺序合并为长图;顺序可调整) */
@@ -128,6 +132,9 @@ export const useStore = create<EditorState>((set, get) => ({
   projectName: '未命名曲谱',
   theme: (localStorage.getItem('wb-theme') as 'system' | 'light' | 'dark') || 'system',
   setTheme: (t) => set({ theme: t }),
+  licensed: false,
+  licenseKey: null,
+  setLicensed: (b, key) => set({ licensed: b, licenseKey: key }),
   dirty: false,
 
   score: null,
