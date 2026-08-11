@@ -67,7 +67,7 @@ export default function AudioPanel(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying])
 
-  // 对点模式:回车 = 给当前选中的小节追加一个时间点,并自动跳到下一小节(连续对点)
+  // 对点模式:回车 = 给"预选框指向的小节"(markingNext)追加时间点,并自动指向下一小节(跟预选框走)
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Enter') return
@@ -78,12 +78,12 @@ export default function AudioPanel(): React.JSX.Element {
       e.preventDefault()
       const total = getMeasureCount(st.hLines, st.vLines, st.score.width)
       if (total <= 0) return
-      const n = st.currentMeasure ?? 1
+      // 优先预选框;没有预选框时用当前选中小节
+      const n = Math.min(Math.max(st.markingNext ?? st.currentMeasure ?? 1, 1), total)
       const now = getAudio().currentTime
-      st.addMarkEvent(Math.min(Math.max(n, 1), total), now)
-      // 打点后自动选中下一小节(高亮跟随),方便连续回车对点
-      const next = Math.min(n + 1, total)
-      st.selectMeasure(next)
+      st.addMarkEvent(n, now)
+      // 打点后高亮该小节(预选框已由 addMarkEvent 自动指向下一小节)
+      st.selectMeasure(n)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

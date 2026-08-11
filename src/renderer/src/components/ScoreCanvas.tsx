@@ -562,44 +562,39 @@ export default function ScoreCanvas(): React.JSX.Element {
         setSelected({ type: 'h', id: String(hv) })
         setDrag({ kind: 'moveH', sortedIdx: hv, sy: e.clientY, origY: sortedLines(hLines)[hv] })
       } else {
-        // 空白处:对点模式下 = 打点(可重复=反复);否则选中小节(已对点则跳转音频)
+        // 空白处:对点模式下 = 打点(跟预选框走);否则选中小节(已对点则跳转音频)
         setSelected(null)
-        let n = measureNumberAt(x, y)
         const st0 = useStore.getState()
-        if (n === null && st0.marking && score) {
-          // 对点容错:点击落在该行内但未精确命中区间(小节边界/间隙)→ 归入最近的小节
-          const row = rowAt(hLines, y, score.height)
-          const fullXs = vLines.filter((v) => v.kind === 'full').map((v) => v.x)
-          const leftB = fullXs.length ? Math.min(...fullXs) : 0
-          const rightB = fullXs.length ? Math.max(...fullXs) : score.width
-          const rowXs = (r: number): number[] =>
-            [...new Set([leftB, rightB, ...vLines.filter((v) => v.kind === 'measure' && v.row === r).map((v) => v.x)])].sort(
-              (a, b) => a - b
-            )
-          let base = 0
-          for (let r = 0; r < row; r++) base += Math.max(rowXs(r).length - 1, 0)
-          const xs = rowXs(row)
-          let bestIdx = -1
-          let bestD = Infinity
-          for (let i = 0; i < xs.length - 1; i++) {
-            const d = x < xs[i] ? xs[i] - x : x > xs[i + 1] ? x - xs[i + 1] : 0
-            if (d < bestD) {
-              bestD = d
-              bestIdx = i
+        let n: number | null = null
+        if (st0.marking && score) {
+          // 对点核心逻辑:优先命中"预选框指向的小节"(markingNext 的矩形区域)——
+          // 用户看到预选框(橙色框)点哪,就打哪,不受边界/编号错位影响
+          const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
+          const nextM = st0.markingNext !== null ? measuresList.find((mm) => mm.n === st0.markingNext) : undefined
+          if (nextM && x >= nextM.x0 && x <= nextM.x1 && y >= nextM.top && y <= nextM.bottom) {
+            n = nextM.n
+          } else {
+            n = measureNumberAt(x, y)
+            if (n === null) {
+              // 兜底:点击全谱最近的小节(避免边界/间隙点不中)
+              let bestM: { n: number; d: number } | null = null
+              for (const mm of measuresList) {
+                const d = (x - (mm.x0 + mm.x1) / 2) ** 2 + (y - (mm.top + mm.bottom) / 2) ** 2
+                if (bestM === null || d < bestM.d) bestM = { n: mm.n, d }
+              }
+              if (bestM) n = bestM.n
             }
           }
-          if (bestIdx >= 0) n = base + bestIdx + 1
-        }
-        if (n !== null) {
-          selectMeasure(n)
-          const st = useStore.getState()
-          if (st.marking) {
-            // 对点:把当前播放时间追加为该小节的一个事件(同一小节可多点几次=反复段落)
-            const now = getAudio().currentTime
-            addMarkEvent(n, now)
-          } else {
-            // 跳转到该小节最近一次演奏的时间
-            const evs = st.markEvents.filter((e) => e.n === n)
+          if (n !== null) {
+            selectMeasure(n)
+            addMarkEvent(n, getAudio().currentTime)
+          }
+        } else if (!st0.marking) {
+          // 非对点:选中小节(已对点则跳转音频)
+          n = measureNumberAt(x, y)
+          if (n !== null) {
+            selectMeasure(n)
+            const evs = st0.markEvents.filter((e) => e.n === n)
             if (evs.length) {
               const a = getAudio()
               a.currentTime = evs[evs.length - 1].time
@@ -1066,12 +1061,12 @@ export default function ScoreCanvas(): React.JSX.Element {
                     )
                   })()
                 )}
-                {/* 对点编号框 + 时间戳:每个对点事件一个编号框,编号=小节编号(反复的小节出现多个框) */}
+                {/* 对点编号框 + 时间戳:编号=演奏序号(反复的小节出现多个框,序号递增) */}
                 {markEvents.map((e, idx) => {
                   const m = measures.find((mm) => mm.n === e.n)
                   if (!m) return null
-                  // 编号 = 该事件所属的小节编号(反复段落同小节多个框);演奏序号在事件面板中管理
-                  const label = e.n
+                  // 编号 = 演奏序号(第几个演奏的事件;可自定义 label 覆盖)
+                  const label = e.label ?? idx + 1
                   const inRow = markEvents.filter((x, j) => x.n === e.n && j <= idx).length - 1
                   const total = markEvents.filter((x) => x.n === e.n).length
                   const slot = m.x1 - m.x0
