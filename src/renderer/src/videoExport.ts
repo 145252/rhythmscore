@@ -144,6 +144,48 @@ export function currentBeatStart(prog: number, beatsPerMeasure: number, beatRati
   return sorted[beat]
 }
 
+/** 拍点小球跳跃状态 */
+export interface BallJumpState {
+  fromX: number
+  fromLocal: number
+  toX: number
+}
+
+export const emptyBallState = (): BallJumpState => ({ fromX: -1, fromLocal: 0, toX: -1 })
+
+/**
+ * 拍点小球位置:分拍时在相邻拍起点间做抛物线跳跃(弧线),无分拍时随拍进度连续移动。
+ * local = 拍内进度(0-1);arcH = 跳跃弧线高度;返回新位置并更新跳跃状态。
+ */
+export function ballPos(
+  beatStart: number | null,
+  x0: number,
+  x1: number,
+  local: number,
+  baseY: number,
+  arcH: number,
+  state: BallJumpState
+): { x: number; y: number; state: BallJumpState } {
+  if (beatStart === null) {
+    // 无分拍:整小节一拍,小球随拍进度从左边界到右边界(连续)
+    return { x: x0 + (x1 - x0) * clamp(local, 0, 1), y: baseY, state: { ...state, toX: -1 } }
+  }
+  const curX = x0 + (x1 - x0) * beatStart
+  let st = state
+  if (st.toX !== curX) {
+    st = { fromX: st.toX >= 0 ? st.toX : curX, fromLocal: local, toX: curX }
+  }
+  // 进入新拍后的前 30% 时间内做弧线跳跃,之后停在落点
+  const dur = 0.3
+  const dt = local - st.fromLocal
+  if (dt >= 0 && dt < dur) {
+    const u = dt / dur
+    const arc = arcH * 4 * u * (1 - u)
+    return { x: st.fromX + (curX - st.fromX) * u, y: baseY - arc, state: st }
+  }
+  return { x: curX, y: baseY, state: st }
+}
+
 /**
  * 按拍号细分计算光标在小节内的位置比例:
  * 拍线默认等分,可手动微调;光标在每拍区间内匀速,但各拍宽度不同 → 光标按实际拍距走。
@@ -170,10 +212,13 @@ let smoothInit = false
 // 跳框淡入淡出状态(切换小节时从 0 淡入)
 let jumpFade = 0
 let jumpLastN = -1
+// 拍点小球跳跃状态
+let ballJump: BallJumpState = emptyBallState()
 export function resetSmooth(): void {
   smoothInit = false
   jumpFade = 0
   jumpLastN = -1
+  ballJump = emptyBallState()
 }
 
 /** 渲染一帧到画布(画布尺寸 W×H)。offset 通过 lerp 平滑逼近目标,滚动连贯 */
@@ -379,20 +424,22 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         }
       }
       ctx.lineCap = 'round'
-      // 拍点小球:光标线上方,分拍时落在当前拍起点(每拍跳动),无分拍跟随光标匀速移动
+      // 拍点小球:分拍时相邻拍起点间弧线跳跃,无分拍随拍进度连续移动
       if (data.cursorBall) {
+        const n = curRatios.length + 1
         const bs =
-          data.beatSubdivision && curRatios.length >= 1
-            ? currentBeatStart(prog, curRatios.length + 1, curRatios)
-            : null
-        const ballX = bs !== null ? bx + bw * bs : cursorX
-        const rad = Math.max(4.5, data.cursorWidth * 0.9)
-        const ballY = by - rad * 0.55
+          data.beatSubdivision && curRatios.length >= 1 ? currentBeatStart(prog, n, curRatios) : null
+        const local = bs !== null ? prog * n - Math.floor(prog * n) : prog
+        const arcH = Math.max(36, bh * 0.3)
+        const pos = ballPos(bs, bx, bx + bw, local, by, arcH, ballJump)
+        ballJump = pos.state
+        const rad = Math.max(11, data.cursorWidth * 2.2)
+        const ballY = pos.y - rad * 0.6
         ctx.beginPath()
-        ctx.arc(ballX, ballY, rad, 0, Math.PI * 2)
+        ctx.arc(pos.x, ballY, rad, 0, Math.PI * 2)
         ctx.fillStyle = hexToRgba(data.cursorColor, 0.95)
         ctx.fill()
-        ctx.lineWidth = Math.max(1.5, rad * 0.28)
+        ctx.lineWidth = Math.max(2, rad * 0.22)
         ctx.strokeStyle = 'rgba(255,255,255,0.92)'
         ctx.stroke()
       }

@@ -5,7 +5,7 @@ import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, an
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
-import { beatCursorRatio, beatRatiosFor, buildMeasures, currentBeatStart, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
+import { ballPos, beatCursorRatio, beatRatiosFor, buildMeasures, currentBeatStart, emptyBallState, eventAtTime, measureAtTime, trailRegions, type BallJumpState } from '../videoExport'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
@@ -138,6 +138,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   const cursorLineRef = useRef<SVGLineElement>(null)
   const cursorGlowRef = useRef<SVGLineElement>(null)
   const cursorBallRef = useRef<SVGCircleElement>(null)
+  const ballJumpRef = useRef<BallJumpState>(emptyBallState())
   const trailRectsRef = useRef<(SVGRectElement | null)[]>([])
   /** 颜色进度遮罩最多支持的行数(整谱模式每行一个矩形,一般不会超过) */
   const MAX_TRAIL_RECTS = 24
@@ -304,18 +305,19 @@ export default function ScoreCanvas(): React.JSX.Element {
         el.setAttribute('y2', String(m.bottom))
         el.setAttribute('stroke-width', String(cw))
         el.setAttribute('visibility', 'visible')
-        // 拍点小球:分拍时落在当前拍起点(每拍跳动);无分拍时绑定小节左右边界随拍进度横跨(整小节=一拍的大跨度)
+        // 拍点小球:分拍时相邻拍起点间弧线跳跃,无分拍随拍进度连续移动
         const ball = cursorBallRef.current
         if (ball) {
           if (st.cursorBall) {
-            const bs =
-              st.beatSubdivision && curRatios.length >= 1
-                ? currentBeatStart(prog, curRatios.length + 1, curRatios)
-                : null
-            const ballX = bs !== null ? m.x0 + (m.x1 - m.x0) * bs : cx
-            const rad = Math.max(4.5, cw * 0.9)
-            ball.setAttribute('cx', String(ballX))
-            ball.setAttribute('cy', String(m.top - rad * 0.55))
+            const n = curRatios.length + 1
+            const bs = st.beatSubdivision && curRatios.length >= 1 ? currentBeatStart(prog, n, curRatios) : null
+            const local = bs !== null ? prog * n - Math.floor(prog * n) : prog
+            const arcH = Math.max(26, cw * 5)
+            const pos = ballPos(bs, m.x0, m.x1, local, m.top, arcH, ballJumpRef.current)
+            ballJumpRef.current = pos.state
+            const rad = Math.max(10, cw * 2.2)
+            ball.setAttribute('cx', String(pos.x))
+            ball.setAttribute('cy', String(pos.y - rad * 0.6))
             ball.setAttribute('r', String(rad))
             ball.setAttribute('fill', st.cursorColor)
             ball.setAttribute('visibility', 'visible')
