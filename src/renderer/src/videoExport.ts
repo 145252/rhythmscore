@@ -146,44 +146,35 @@ export function currentBeatStart(prog: number, beatsPerMeasure: number, beatRati
 
 /** 拍点小球跳跃状态 */
 export interface BallJumpState {
-  fromX: number
-  fromLocal: number
-  toX: number
+  lastKey: number
+  jumpAt: number
 }
 
-export const emptyBallState = (): BallJumpState => ({ fromX: -1, fromLocal: 0, toX: -1 })
+export const emptyBallState = (): BallJumpState => ({ lastKey: -1, jumpAt: 0 })
 
 /**
- * 拍点小球位置:分拍时在相邻拍起点间做抛物线跳跃(弧线),无分拍时随拍进度连续移动。
- * local = 拍内进度(0-1);arcH = 跳跃弧线高度;返回新位置并更新跳跃状态。
+ * 拍点小球:始终跟随光标线(x 与标线同步),拍起点处(有分拍=每拍线,无分拍=小节起点)做一次纵向抛物线跳动。
+ * beatKey = 当前拍标识(变化即触发跳跃);local = 拍内进度(跳跃计时用);arcH = 跳跃高度。
  */
 export function ballPos(
-  beatStart: number | null,
-  x0: number,
-  x1: number,
-  local: number,
+  beatKey: number,
+  cursorX: number,
   baseY: number,
+  local: number,
   arcH: number,
   state: BallJumpState
 ): { x: number; y: number; state: BallJumpState } {
-  if (beatStart === null) {
-    // 无分拍:整小节一拍,小球随拍进度从左边界到右边界(连续)
-    return { x: x0 + (x1 - x0) * clamp(local, 0, 1), y: baseY, state: { ...state, toX: -1 } }
-  }
-  const curX = x0 + (x1 - x0) * beatStart
   let st = state
-  if (st.toX !== curX) {
-    st = { fromX: st.toX >= 0 ? st.toX : curX, fromLocal: local, toX: curX }
+  if (beatKey !== st.lastKey) {
+    st = { lastKey: beatKey, jumpAt: local }
   }
-  // 进入新拍后的前 30% 时间内做弧线跳跃,之后停在落点
-  const dur = 0.3
-  const dt = local - st.fromLocal
+  const dur = 0.25
+  const dt = local - st.jumpAt
   if (dt >= 0 && dt < dur) {
     const u = dt / dur
-    const arc = arcH * 4 * u * (1 - u)
-    return { x: st.fromX + (curX - st.fromX) * u, y: baseY - arc, state: st }
+    return { x: cursorX, y: baseY - arcH * 4 * u * (1 - u), state: st }
   }
-  return { x: curX, y: baseY, state: st }
+  return { x: cursorX, y: baseY, state: st }
 }
 
 /**
@@ -424,14 +415,14 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         }
       }
       ctx.lineCap = 'round'
-      // 拍点小球:分拍时相邻拍起点间弧线跳跃,无分拍随拍进度连续移动
+      // 拍点小球:跟随光标线移动,拍起点处(有分拍=每拍线,无分拍=小节起点)纵向跳动
       if (data.cursorBall) {
         const n = curRatios.length + 1
-        const bs =
-          data.beatSubdivision && curRatios.length >= 1 ? currentBeatStart(prog, n, curRatios) : null
-        const local = bs !== null ? prog * n - Math.floor(prog * n) : prog
-        const arcH = Math.max(36, bh * 0.3)
-        const pos = ballPos(bs, bx, bx + bw, local, by, arcH, ballJump)
+        const beatIdx = Math.min(Math.floor(prog * n), n - 1)
+        const key = data.beatSubdivision && curRatios.length >= 1 ? curM.n * 100 + beatIdx : curM.n
+        const local = data.beatSubdivision && curRatios.length >= 1 ? prog * n - beatIdx : prog
+        const arcH = Math.max(34, bh * 0.28)
+        const pos = ballPos(key, cursorX, by, local, arcH, ballJump)
         ballJump = pos.state
         const rad = Math.max(11, data.cursorWidth * 2.2)
         const ballY = pos.y - rad * 0.6

@@ -305,15 +305,16 @@ export default function ScoreCanvas(): React.JSX.Element {
         el.setAttribute('y2', String(m.bottom))
         el.setAttribute('stroke-width', String(cw))
         el.setAttribute('visibility', 'visible')
-        // 拍点小球:分拍时相邻拍起点间弧线跳跃,无分拍随拍进度连续移动
+        // 拍点小球:跟随光标线移动,拍起点处(有分拍=每拍线,无分拍=小节起点)纵向跳动
         const ball = cursorBallRef.current
         if (ball) {
           if (st.cursorBall) {
             const n = curRatios.length + 1
-            const bs = st.beatSubdivision && curRatios.length >= 1 ? currentBeatStart(prog, n, curRatios) : null
-            const local = bs !== null ? prog * n - Math.floor(prog * n) : prog
+            const beatIdx = Math.min(Math.floor(prog * n), n - 1)
+            const key = st.beatSubdivision && curRatios.length >= 1 ? m.n * 100 + beatIdx : m.n
+            const local = st.beatSubdivision && curRatios.length >= 1 ? prog * n - beatIdx : prog
             const arcH = Math.max(26, cw * 5)
-            const pos = ballPos(bs, m.x0, m.x1, local, m.top, arcH, ballJumpRef.current)
+            const pos = ballPos(key, cx, m.top, local, arcH, ballJumpRef.current)
             ballJumpRef.current = pos.state
             const rad = Math.max(10, cw * 2.2)
             ball.setAttribute('cx', String(pos.x))
