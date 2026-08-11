@@ -304,20 +304,24 @@ export default function ScoreCanvas(): React.JSX.Element {
         el.setAttribute('y2', String(m.bottom))
         el.setAttribute('stroke-width', String(cw))
         el.setAttribute('visibility', 'visible')
-        // 拍点小球:分拍时落在当前拍起点(每拍跳动),无分拍跟随光标
+        // 拍点小球:分拍时落在当前拍起点(每拍跳动);无分拍时绑定小节左右边界随拍进度横跨(整小节=一拍的大跨度)
         const ball = cursorBallRef.current
         if (ball) {
-          const bs =
-            st.beatSubdivision && curRatios.length >= 1
-              ? currentBeatStart(prog, curRatios.length + 1, curRatios)
-              : null
-          const ballX = bs !== null ? m.x0 + (m.x1 - m.x0) * bs : cx
-          const rad = Math.max(4.5, cw * 0.9)
-          ball.setAttribute('cx', String(ballX))
-          ball.setAttribute('cy', String(m.top - rad * 0.55))
-          ball.setAttribute('r', String(rad))
-          ball.setAttribute('fill', st.cursorColor)
-          ball.setAttribute('visibility', 'visible')
+          if (st.cursorBall) {
+            const bs =
+              st.beatSubdivision && curRatios.length >= 1
+                ? currentBeatStart(prog, curRatios.length + 1, curRatios)
+                : null
+            const ballX = bs !== null ? m.x0 + (m.x1 - m.x0) * bs : cx
+            const rad = Math.max(4.5, cw * 0.9)
+            ball.setAttribute('cx', String(ballX))
+            ball.setAttribute('cy', String(m.top - rad * 0.55))
+            ball.setAttribute('r', String(rad))
+            ball.setAttribute('fill', st.cursorColor)
+            ball.setAttribute('visibility', 'visible')
+          } else {
+            ball.setAttribute('visibility', 'hidden')
+          }
         }
         // 颜色进度:光标走过区域覆盖同色遮罩(范围:当前小节/整行/整谱已播放部分)
         const fullXs = st.vLines.filter((v) => v.kind === 'full').map((v) => v.x)
