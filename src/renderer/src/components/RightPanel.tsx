@@ -102,7 +102,7 @@ export default function RightPanel(): React.JSX.Element {
           jumpOpacity,
           nextColor,
           nextOpacity,
-          watermark: !st.licensed // 免费版导出叠加动态水印
+          watermark: !st.licensed && !st.trialActive // 未激活且不在试用期:导出叠加动态水印
         },
         (r) => {
           // 进度按整百分比节流,避免高频 setState 拖累录制
@@ -131,7 +131,7 @@ export default function RightPanel(): React.JSX.Element {
         webmBase64,
         defaultName: projectName || '曲谱视频',
         splitMeasures,
-        lowQuality: !st.licensed // 免费版导出降清晰度(720p)
+        lowQuality: !st.licensed && !st.trialActive // 未激活且不在试用期:导出降 720p 清晰度
       })
       if (!res || res.canceled) {
         setState('idle')

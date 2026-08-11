@@ -1496,3 +1496,111 @@ body.dark .machine-row code {
   border-color: rgba(75, 224, 140, 0.45);
   color: #4be08c;
 }
+
+/* 专业版弹窗:状态区 + 功能对比 */
+.lic-box {
+  max-width: 460px;
+}
+
+.lic-status {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.lic-status svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.lic-status b {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 13.5px;
+}
+
+.lic-status span {
+  color: var(--text-2);
+}
+
+.lic-status.ok {
+  background: rgba(75, 224, 140, 0.12);
+  border: 1px solid rgba(75, 224, 140, 0.4);
+  color: #2fbf6d;
+}
+
+.lic-status.trial {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #d98300;
+}
+
+.lic-status.free {
+  background: rgba(255, 143, 141, 0.1);
+  border: 1px solid rgba(255, 143, 141, 0.35);
+  color: #d14b4a;
+}
+
+.lic-compare {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.lic-row {
+  display: grid;
+  grid-template-columns: 1.7fr 1fr 1fr;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  align-items: center;
+}
+
+.lic-row:nth-child(even) {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.dark .lic-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lic-head {
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: var(--text);
+}
+
+body.dark .lic-head {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.lic-yes {
+  color: #2fbf6d;
+  font-weight: 600;
+}
+
+.lic-no {
+  color: #e24b4a;
+}
+
+.lic-mid {
+  color: var(--text-3);
+}
+
+.lic-tip {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+
+/* 顶部试用按钮 */
+.pro-topbar.pro-trial {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #ffc46b;
+}
