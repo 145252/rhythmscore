@@ -43,7 +43,7 @@ export default function RightPanel(): React.JSX.Element {
   const setNextOpacity = useStore((s) => s.setNextOpacity)
 
   const [ratio, setRatio] = useState<VideoRatio>('16:9')
-  const [split, setSplit] = useState(true)
+  const [split, setSplit] = useState(false) // 默认不导出小节切片,避免生成一堆"小节N.mp4"
   const [state, setState] = useState<ExportState>('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
