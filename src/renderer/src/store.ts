@@ -114,6 +114,16 @@ interface EditorState {
   cursorTrailOpacity: number
   /** 颜色进度覆盖范围:measure=当前小节 / row=整行 / score=整谱已播放部分 */
   cursorTrailRange: 'measure' | 'row' | 'score'
+  /** 拍号细分:开启后每个小节内按拍号生成拍线,光标按拍距走 */
+  beatSubdivision: boolean
+  /** 每小节拍数(拍号分子,如 4/4=4) */
+  beatsPerMeasure: number
+  /** 拍线位置比例(0-1,长度=拍数-1,默认等分;可手动拖动微调) */
+  beatRatios: number[]
+  setBeatSubdivision: (b: boolean) => void
+  setBeatsPerMeasure: (n: number) => void
+  setBeatRatios: (r: number[]) => void
+  resetBeatRatios: () => void
   setCursorColor: (c: string) => void
   setCursorWidth: (w: number) => void
   setCursorOpacity: (o: number) => void
@@ -182,6 +192,9 @@ export const useStore = create<EditorState>((set, get) => ({
   cursorTrail: false,
   cursorTrailOpacity: 0.3,
   cursorTrailRange: 'measure',
+  beatSubdivision: false,
+  beatsPerMeasure: 4,
+  beatRatios: [0.25, 0.5, 0.75],
 
   videoMode: 'continuous',
   jumpColor: '#E24B4A',
@@ -362,6 +375,20 @@ export const useStore = create<EditorState>((set, get) => ({
   setCursorTrail: (b) => set({ cursorTrail: b }),
   setCursorTrailOpacity: (o) => set({ cursorTrailOpacity: o }),
   setCursorTrailRange: (r) => set({ cursorTrailRange: r }),
+  setBeatSubdivision: (b) => set({ beatSubdivision: b }),
+  setBeatsPerMeasure: (n) => {
+    const count = Math.max(2, Math.min(12, Math.round(n)))
+    const ratios: number[] = []
+    for (let i = 1; i < count; i++) ratios.push(i / count)
+    set({ beatsPerMeasure: count, beatRatios: ratios })
+  },
+  setBeatRatios: (r) => set({ beatRatios: r }),
+  resetBeatRatios: () => {
+    const count = useStore.getState().beatsPerMeasure
+    const ratios: number[] = []
+    for (let i = 1; i < count; i++) ratios.push(i / count)
+    set({ beatRatios: ratios })
+  },
 
   setVideoMode: (m) => set({ videoMode: m }),
   setJumpColor: (c) => set({ jumpColor: c }),
@@ -380,6 +407,9 @@ export const useStore = create<EditorState>((set, get) => ({
       vLines: s.vLines,
       markEvents: s.markEvents.length ? s.markEvents : undefined,
       measureLabel: Object.keys(s.measureLabel).length ? s.measureLabel : undefined,
+      beatSubdivision: s.beatSubdivision ? true : undefined,
+      beatsPerMeasure: s.beatSubdivision ? s.beatsPerMeasure : undefined,
+      beatRatios: s.beatSubdivision && s.beatRatios.length ? s.beatRatios : undefined,
       audio:
         s.audioDataUrl && s.audioName
           ? { name: s.audioName, dataUrl: s.audioDataUrl }
@@ -401,6 +431,17 @@ export const useStore = create<EditorState>((set, get) => ({
         .map(([n, t]) => ({ n: Number(n), time: t, base: t }))
         .sort((a, b) => a.time - b.time),
       measureLabel: p.measureLabel ?? {},
+      beatSubdivision: p.beatSubdivision ?? false,
+      beatsPerMeasure: p.beatsPerMeasure ?? 4,
+      beatRatios:
+        p.beatRatios && p.beatRatios.length
+          ? p.beatRatios
+          : (() => {
+              const count = p.beatsPerMeasure ?? 4
+              const ratios: number[] = []
+              for (let i = 1; i < count; i++) ratios.push(i / count)
+              return ratios
+            })(),
       // 恢复音频(打开后自动加载,无需重新导入)
       audioName: p.audio?.name ?? null,
       audioDataUrl: p.audio?.dataUrl ?? null,
@@ -434,6 +475,9 @@ export const useStore = create<EditorState>((set, get) => ({
       markEvents: [],
       measureLabel: {},
       marking: false,
-      markingNext: null
+      markingNext: null,
+      beatSubdivision: false,
+      beatsPerMeasure: 4,
+      beatRatios: [0.25, 0.5, 0.75]
     })
 }))

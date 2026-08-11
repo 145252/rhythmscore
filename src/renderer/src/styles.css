@@ -1612,3 +1612,15 @@ body.dark .lic-head {
   padding: 6px 0;
   font-size: 12px;
 }
+
+/* 拍号细分:拍号选择 */
+.beat-select {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  color: var(--text);
+  font-size: 13px;
+}

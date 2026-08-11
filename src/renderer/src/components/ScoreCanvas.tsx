@@ -5,13 +5,14 @@ import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, an
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
-import { buildMeasures, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
+import { beatCursorRatio, buildMeasures, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
 type DragState =
   | { kind: 'moveH'; sortedIdx: number; sy: number; origY: number }
   | { kind: 'moveV'; id: string; sx: number; origX: number }
+  | { kind: 'moveBeat'; index: number; sx: number; origRatio: number; m: { x0: number; x1: number } }
   | null
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi)
@@ -114,6 +115,9 @@ export default function ScoreCanvas(): React.JSX.Element {
   const cursorOpacity = useStore((s) => s.cursorOpacity)
   const cursorTrail = useStore((s) => s.cursorTrail)
   const cursorTrailOpacity = useStore((s) => s.cursorTrailOpacity)
+  const beatSubdivision = useStore((s) => s.beatSubdivision)
+  const beatRatios = useStore((s) => s.beatRatios)
+  const setBeatRatios = useStore((s) => s.setBeatRatios)
   const markLineColor = useStore((s) => s.markLineColor)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
@@ -275,7 +279,12 @@ export default function ScoreCanvas(): React.JSX.Element {
         const start = ev.time
         const end = st.markEvents[idx + 1]?.time ?? st.audioDuration
         const prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
-        const cx = m.x0 + (m.x1 - m.x0) * prog
+        // 拍号细分开启时,光标按每拍实际拍距走
+        const ratioInMeasure =
+          st.beatSubdivision && st.beatRatios.length === st.beatsPerMeasure - 1
+            ? beatCursorRatio(prog, st.beatsPerMeasure, st.beatRatios)
+            : prog
+        const cx = m.x0 + (m.x1 - m.x0) * ratioInMeasure
         const cw = clamp((st.cursorWidth * st.score.width) / 1920, 1, 40)
         // 轻光晕
         glow.setAttribute('x1', String(cx))
@@ -441,6 +450,36 @@ export default function ScoreCanvas(): React.JSX.Element {
     }
     if (tool === 'select') {
       const tol = 12 / scale
+      // 拍线命中(拍号细分开启时,优先于小节边界线)
+      if (beatSubdivision && beatRatios.length > 0) {
+        const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
+        let bestIdx = -1
+        let bestM: { x0: number; x1: number } | null = null
+        let bestD = Infinity
+        for (const m of measuresList) {
+          if (y < m.top || y > m.bottom) continue
+          for (let i = 0; i < beatRatios.length; i++) {
+            const lx = m.x0 + (m.x1 - m.x0) * beatRatios[i]
+            const d = Math.abs(lx - x)
+            if (d < bestD) {
+              bestD = d
+              bestIdx = i
+              bestM = { x0: m.x0, x1: m.x1 }
+            }
+          }
+        }
+        if (bestIdx >= 0 && bestM && bestD <= tol) {
+          setSelected(null)
+          setDrag({
+            kind: 'moveBeat',
+            index: bestIdx,
+            sx: e.clientX,
+            origRatio: beatRatios[bestIdx],
+            m: bestM
+          })
+          return
+        }
+      }
       const hv = nearestHLine(hLines, y, tol)
       const vv = nearestVLine(vLines, hLines, x, y, score.height, tol)
       if (vv && (hv === null || Math.abs(vv.x - x) <= Math.abs(sortedLines(hLines)[hv] - y))) {
@@ -480,6 +519,17 @@ export default function ScoreCanvas(): React.JSX.Element {
         updateHLine(drag.sortedIdx, drag.origY + (e.clientY - drag.sy) / scale)
       } else if (drag.kind === 'moveV') {
         updateVLine(drag.id, drag.origX + (e.clientX - drag.sx) / scale)
+      } else if (drag.kind === 'moveBeat') {
+        // 拍线拖动:更新全局拍线比例(钳制在相邻拍线之间,保持有序)
+        const m = drag.m
+        const newX = m.x0 + (m.x1 - m.x0) * drag.origRatio + (e.clientX - drag.sx) / scale
+        let r = (newX - m.x0) / (m.x1 - m.x0)
+        const prev = drag.index > 0 ? beatRatios[drag.index - 1] : 0
+        const next = drag.index < beatRatios.length - 1 ? beatRatios[drag.index + 1] : 1
+        r = clamp(r, prev + 0.005, next - 0.005)
+        const arr = [...beatRatios]
+        arr[drag.index] = r
+        setBeatRatios(arr)
       }
       return
     }
@@ -658,6 +708,28 @@ export default function ScoreCanvas(): React.JSX.Element {
                     <stop offset="100%" stopColor={rgba(markLineColor, 0.1)} />
                   </linearGradient>
                 </defs>
+                {/* 拍号细分:每小节内拍线(虚线,可拖动微调;拖动命中逻辑在 onMouseDown) */}
+                {beatSubdivision && beatRatios.length > 0 && (
+                  <g className="beat-lines" pointerEvents="none">
+                    {measures.map((m) =>
+                      beatRatios.map((r, i) => {
+                        const lx = m.x0 + (m.x1 - m.x0) * r
+                        return (
+                          <line
+                            key={`${m.n}-${i}`}
+                            x1={lx}
+                            y1={m.top}
+                            x2={lx}
+                            y2={m.bottom}
+                            stroke={rgba(markLineColor, 0.35)}
+                            strokeWidth={1.2 * k}
+                            strokeDasharray={`${3 * k} ${3 * k}`}
+                          />
+                        )
+                      })
+                    )}
+                  </g>
+                )}
                 {/* 当前小节高亮(连续模式:发光玻璃框,跟随标线颜色) */}
                 {videoMode === 'continuous' &&
                   currentMeasure !== null &&

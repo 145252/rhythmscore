@@ -63,6 +63,10 @@ export interface RenderData {
   cursorTrailOpacity: number
   /** 颜色进度覆盖范围:measure=当前小节 / row=整行 / score=整个曲谱(已播放部分) */
   cursorTrailRange: TrailRange
+  /** 拍号细分:开启后光标按每拍实际拍距走 */
+  beatSubdivision: boolean
+  beatsPerMeasure: number
+  beatRatios: number[]
   /** 免费版:导出时叠加动态移动水印(专业版 false) */
   watermark: boolean
   /** 跳框模式高亮颜色 */
@@ -114,6 +118,23 @@ export function eventAtTime(t: number, events: MarkEvent[]): MarkEvent | null {
 export function measureAtTime(t: number, events: MarkEvent[]): number | null {
   const ev = eventAtTime(t, events)
   return ev !== null ? ev.n : null
+}
+
+/**
+ * 按拍号细分计算光标在小节内的位置比例:
+ * 拍线默认等分,可手动微调;光标在每拍区间内匀速,但各拍宽度不同 → 光标按实际拍距走。
+ */
+export function beatCursorRatio(prog: number, beatsPerMeasure: number, beatRatios: number[]): number {
+  const n = beatsPerMeasure
+  if (n < 2 || beatRatios.length !== n - 1) return prog
+  // 拍边界比例(拖动态可能轻微乱序,排序兜底)
+  const sorted = [0, ...beatRatios, 1].slice().sort((a, b) => a - b)
+  const p = clamp(prog, 0, 0.999999)
+  const beat = Math.min(Math.floor(p * n), n - 1)
+  const r0 = sorted[beat]
+  const r1 = sorted[beat + 1]
+  const local = p * n - beat
+  return r0 + (r1 - r0) * local
 }
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi)
@@ -309,11 +330,16 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         const end = data.events[idx + 1]?.time ?? data.totalDuration
         prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
       }
-      const cursorX = bx + bw * prog
+      // 光标在小节内的位置比例(拍号细分开启时按每拍实际拍距走)
+      const ratioInMeasure =
+        data.beatSubdivision && data.beatRatios.length === data.beatsPerMeasure - 1
+          ? beatCursorRatio(prog, data.beatsPerMeasure, data.beatRatios)
+          : prog
+      const cursorX = bx + bw * ratioInMeasure
       const op = clamp(data.cursorOpacity, 0.2, 1)
       // 颜色进度:光标走过区域覆盖同色遮罩(范围:当前小节/整行/整谱已播放部分)
       if (data.cursorTrail) {
-        const cursorScoreX = curM.x0 + (curM.x1 - curM.x0) * prog
+        const cursorScoreX = curM.x0 + (curM.x1 - curM.x0) * ratioInMeasure
         const regions = trailRegions(
           curM,
           cursorScoreX,
