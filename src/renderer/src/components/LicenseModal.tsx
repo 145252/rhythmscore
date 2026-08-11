@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2, Copy, Crown, KeyRound, Sparkles, Timer } from 'lucide-react'
+import { CheckCircle2, Copy, Crown, KeyRound, Sparkles } from 'lucide-react'
 import { useStore } from '../store'
 
 interface Props {
@@ -11,16 +11,13 @@ const FEATURES: { name: string; free: string; pro: string }[] = [
   { name: '导入乐谱 / 画线分节 / 音频对点 / 反复段落', free: '✓', pro: '✓' },
   { name: '导出视频无水印', free: '✗(带 RhythmScore 水印)', pro: '✓' },
   { name: '导出全高清清晰度', free: '✗(720p)', pro: '✓' },
-  { name: '7 天免费试用', free: '✓(一次)', pro: '—' },
   { name: '买断后永久使用', free: '✗', pro: '✓' }
 ]
 
-/** 专业版弹窗:试用状态 + 功能对比 + 激活 */
+/** 专业版弹窗:免费/专业对比 + 激活 */
 export default function LicenseModal({ open, onClose }: Props): React.JSX.Element {
   const licensed = useStore((s) => s.licensed)
   const setLicensed = useStore((s) => s.setLicensed)
-  const trialActive = useStore((s) => s.trialActive)
-  const trialDaysLeft = useStore((s) => s.trialDaysLeft)
   const [machine, setMachine] = useState('')
   const [keyInput, setKeyInput] = useState('')
   const [err, setErr] = useState('')
@@ -74,19 +71,11 @@ export default function LicenseModal({ open, onClose }: Props): React.JSX.Elemen
               <span>永久解锁 · 无水印 · 全高清导出,感谢支持!</span>
             </div>
           </div>
-        ) : trialActive ? (
-          <div className="lic-status trial">
-            <Timer size={16} />
-            <div>
-              <b>7 天免费试用中 · 剩余 {trialDaysLeft} 天</b>
-              <span>试用期内享受无水印、全高清导出。试用结束后需激活专业版,否则恢复水印与 720p。</span>
-            </div>
-          </div>
         ) : (
           <div className="lic-status free">
             <Sparkles size={16} />
             <div>
-              <b>免费版 · 试用已结束</b>
+              <b>免费版</b>
               <span>导出视频带 RhythmScore 水印,清晰度 720p。激活专业版后无水印、全高清。</span>
             </div>
           </div>

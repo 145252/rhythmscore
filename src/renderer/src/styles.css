@@ -1541,12 +1541,6 @@ body.dark .machine-row code {
   color: #2fbf6d;
 }
 
-.lic-status.trial {
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #d98300;
-}
-
 .lic-status.free {
   background: rgba(255, 143, 141, 0.1);
   border: 1px solid rgba(255, 143, 141, 0.35);
@@ -1604,11 +1598,4 @@ body.dark .lic-head {
   font-size: 12px;
   color: var(--text-3);
   margin-bottom: 8px;
-}
-
-/* 顶部试用按钮 */
-.pro-topbar.pro-trial {
-  background: rgba(245, 158, 11, 0.16);
-  border-color: rgba(245, 158, 11, 0.5);
-  color: #ffc46b;
 }

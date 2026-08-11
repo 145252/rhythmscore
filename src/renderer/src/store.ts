@@ -18,10 +18,6 @@ interface EditorState {
   licensed: boolean
   licenseKey: string | null
   setLicensed: (b: boolean, key: string | null) => void
-  /** 7 天免费试用(试用期内享受专业版导出;超期未激活恢复水印/降清晰度) */
-  trialStart: number | null
-  trialActive: boolean
-  trialDaysLeft: number
   /** 激活弹窗开关(App 顶层渲染,避免被顶栏层级遮挡) */
   licenseModalOpen: boolean
   setLicenseModalOpen: (b: boolean) => void
@@ -135,6 +131,9 @@ interface EditorState {
   markSaved: () => void
 }
 
+// 清理历史版本残留的试用数据(试用机制已移除)
+if (localStorage.getItem('rs-trial-start')) localStorage.removeItem('rs-trial-start')
+
 export const useStore = create<EditorState>((set, get) => ({
   projectName: '未命名曲谱',
   theme: (localStorage.getItem('wb-theme') as 'system' | 'light' | 'dark') || 'system',
@@ -142,24 +141,6 @@ export const useStore = create<EditorState>((set, get) => ({
   licensed: false,
   licenseKey: null,
   setLicensed: (b, key) => set({ licensed: b, licenseKey: key }),
-  trialStart: (() => {
-    const v = localStorage.getItem('rs-trial-start')
-    if (v) return Number(v)
-    const now = Date.now()
-    localStorage.setItem('rs-trial-start', String(now))
-    return now
-  })(),
-  trialActive: (() => {
-    const v = localStorage.getItem('rs-trial-start')
-    if (!v) return true
-    return Date.now() - Number(v) < 7 * 86400000
-  })(),
-  trialDaysLeft: (() => {
-    const v = localStorage.getItem('rs-trial-start')
-    if (!v) return 7
-    const elapsedDays = (Date.now() - Number(v)) / 86400000
-    return Math.max(0, 7 - Math.floor(elapsedDays))
-  })(),
   licenseModalOpen: false,
   setLicenseModalOpen: (b) => set({ licenseModalOpen: b }),
   dirty: false,

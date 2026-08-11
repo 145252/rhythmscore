@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { CheckCircle2, Crown, FolderOpen, Monitor, Moon, Save, Sun, Timer, X } from 'lucide-react'
+import { CheckCircle2, Crown, FolderOpen, Monitor, Moon, Save, Sun, X } from 'lucide-react'
 import { useStore } from '../store'
 import { getAudio } from '../audioPlayer'
 
@@ -15,8 +15,6 @@ export default function TopBar(): React.JSX.Element {
   const setTheme = useStore((s) => s.setTheme)
   const licensed = useStore((s) => s.licensed)
   const setLicensed = useStore((s) => s.setLicensed)
-  const trialActive = useStore((s) => s.trialActive)
-  const trialDaysLeft = useStore((s) => s.trialDaysLeft)
   const setLicenseModalOpen = useStore((s) => s.setLicenseModalOpen)
   const jsonInputRef = useRef<HTMLInputElement>(null)
 
@@ -101,18 +99,12 @@ export default function TopBar(): React.JSX.Element {
       </div>
       <div className="topbar-actions">
         <button
-          className={`btn pro-topbar ${licensed ? 'pro-active' : trialActive ? 'pro-trial' : ''}`}
-          title={
-            licensed
-              ? '专业版已激活,点击查看'
-              : trialActive
-                ? `7 天免费试用中(剩余 ${trialDaysLeft} 天),点击查看专业版`
-                : '升级专业版:去除导出水印、解锁全高清'
-          }
+          className={`btn pro-topbar ${licensed ? 'pro-active' : ''}`}
+          title={licensed ? '专业版已激活,点击查看' : '升级专业版:去除导出水印、解锁全高清'}
           onClick={() => setLicenseModalOpen(true)}
         >
-          {licensed ? <CheckCircle2 size={14} /> : trialActive ? <Timer size={14} /> : <Crown size={14} />}
-          {licensed ? 'Pro' : trialActive ? `试用中 ${trialDaysLeft}天` : '专业版'}
+          {licensed ? <CheckCircle2 size={14} /> : <Crown size={14} />}
+          {licensed ? 'Pro' : '专业版'}
         </button>
         <button
           className="btn icon"
