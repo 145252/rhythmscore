@@ -1477,3 +1477,22 @@ body.dark .machine-row code {
   margin-top: 8px;
   color: #ff8f8d;
 }
+
+/* 顶部专业版按钮 */
+.pro-topbar {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(255, 94, 138, 0.22));
+  border-color: rgba(245, 158, 11, 0.45);
+  color: #f5b54a;
+  font-weight: 600;
+}
+
+.pro-topbar:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(255, 94, 138, 0.35));
+  color: #ffd27a;
+}
+
+.pro-topbar.pro-active {
+  background: rgba(75, 224, 140, 0.16);
+  border-color: rgba(75, 224, 140, 0.45);
+  color: #4be08c;
+}

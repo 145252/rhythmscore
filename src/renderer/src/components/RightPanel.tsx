@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, Clapperboard, Copy, Crown, KeyRound, Loader2 } from 'lucide-react'
+import React, { useRef, useState } from 'react'
+import { AlertTriangle, CheckCircle2, Clapperboard, Loader2 } from 'lucide-react'
 import { useStore } from '../store'
 import {
   buildMeasures,
@@ -48,58 +48,6 @@ export default function RightPanel(): React.JSX.Element {
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
   const lastPctRef = useRef(-1)
-
-  // ---- 专业版授权 ----
-  const licensed = useStore((s) => s.licensed)
-  const licenseKey = useStore((s) => s.licenseKey)
-  const setLicensed = useStore((s) => s.setLicensed)
-  const [activateOpen, setActivateOpen] = useState(false)
-  const [machine, setMachine] = useState('')
-  const [keyInput, setKeyInput] = useState('')
-  const [licErr, setLicErr] = useState('')
-  const [licBusy, setLicBusy] = useState(false)
-
-  // 启动时校验本地已保存的激活码
-  useEffect(() => {
-    const key = localStorage.getItem('rs-license-key')
-    if (!key || !window.api?.isElectron) return
-    void window.api.activateLicense(key).then((r) => {
-      setLicensed(r.ok, r.ok ? key : null)
-      if (!r.ok) localStorage.removeItem('rs-license-key')
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const openActivate = async (): Promise<void> => {
-    setActivateOpen(true)
-    setLicErr('')
-    if (window.api?.isElectron) {
-      setMachine(await window.api.getMachineCode())
-    }
-  }
-
-  const copyMachine = (): void => {
-    if (machine && window.navigator.clipboard) {
-      void window.navigator.clipboard.writeText(machine).then(() => setLicErr('机器码已复制'))
-    }
-  }
-
-  const doActivate = async (): Promise<void> => {
-    const k = keyInput.trim()
-    if (!k || !window.api) return
-    setLicBusy(true)
-    setLicErr('')
-    const r = await window.api.activateLicense(k)
-    setLicBusy(false)
-    if (r.ok) {
-      setLicensed(true, k)
-      localStorage.setItem('rs-license-key', k)
-      setMachine(r.machine)
-      setActivateOpen(false)
-    } else {
-      setLicErr('激活码无效,请确认与上方机器码匹配')
-    }
-  }
 
   const mode = videoMode
   const setMode = setVideoMode
@@ -207,28 +155,6 @@ export default function RightPanel(): React.JSX.Element {
 
   return (
     <aside className="side-panel right">
-      {/* 专业版卡片(授权入口) */}
-      <div className="card pro-card">
-        <h3 className="card-title">
-          <span className="num pro-num">★</span> RhythmScore 专业版
-        </h3>
-        {licensed ? (
-          <div className="pro-ok">
-            <CheckCircle2 size={15} />
-            已激活 · 无水印全高清导出
-          </div>
-        ) : (
-          <>
-            <p className="hint">
-              免费版导出的视频会带上 RhythmScore 动态水印并降低清晰度。激活专业版后导出无水印、全高清。
-            </p>
-            <button className="btn primary pro-btn" onClick={() => void openActivate()}>
-              <Crown size={14} /> 立即激活
-            </button>
-          </>
-        )}
-      </div>
-
       <div className="card">
         <h3 className="card-title">
           <span className="num">3</span> 高亮设置
@@ -381,47 +307,6 @@ export default function RightPanel(): React.JSX.Element {
             : '需要:导入曲谱 + 导入音频 + 至少对点 1 个小节'}
         </p>
       </div>
-
-      {/* 激活专业版弹窗 */}
-      {activateOpen && (
-        <div className="modal-mask" onClick={() => setActivateOpen(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <h4>激活专业版</h4>
-            <p>
-              将下方机器码发给作者(RhythmScore 官网/微信),换取你的专属激活码后粘贴激活。一次购买,永久使用。
-            </p>
-            <div className="machine-row">
-              <code>{machine || '正在获取…'}</code>
-              <button className="btn icon" title="复制机器码" onClick={() => void copyMachine()} disabled={!machine}>
-                <Copy size={13} />
-              </button>
-            </div>
-            <input
-              className="modal-input"
-              placeholder="粘贴激活码"
-              value={keyInput}
-              onChange={(e) => setKeyInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void doActivate()
-              }}
-              autoFocus
-            />
-            {licErr && (
-              <p className="pro-err" style={{ color: licErr === '机器码已复制' ? '#4be08c' : '#ff8f8d' }}>
-                {licErr}
-              </p>
-            )}
-            <div className="modal-actions">
-              <button className="btn" onClick={() => setActivateOpen(false)}>
-                取消
-              </button>
-              <button className="btn primary" disabled={licBusy} onClick={() => void doActivate()}>
-                <KeyRound size={13} /> {licBusy ? '验证中…' : '激活'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </aside>
   )
 }

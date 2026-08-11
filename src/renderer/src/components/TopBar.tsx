@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { FolderOpen, Monitor, Moon, Save, Sun, X } from 'lucide-react'
+import { CheckCircle2, Crown, FolderOpen, Monitor, Moon, Save, Sun, X } from 'lucide-react'
 import { useStore } from '../store'
 import { getAudio } from '../audioPlayer'
 
@@ -13,7 +13,21 @@ export default function TopBar(): React.JSX.Element {
   const markSaved = useStore((s) => s.markSaved)
   const theme = useStore((s) => s.theme)
   const setTheme = useStore((s) => s.setTheme)
+  const licensed = useStore((s) => s.licensed)
+  const setLicensed = useStore((s) => s.setLicensed)
+  const setLicenseModalOpen = useStore((s) => s.setLicenseModalOpen)
   const jsonInputRef = useRef<HTMLInputElement>(null)
+
+  // 启动时校验本地已保存的激活码
+  useEffect(() => {
+    const key = localStorage.getItem('rs-license-key')
+    if (!key || !window.api?.isElectron) return
+    void window.api.activateLicense(key).then((r) => {
+      setLicensed(r.ok, r.ok ? key : null)
+      if (!r.ok) localStorage.removeItem('rs-license-key')
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const save = async (): Promise<void> => {
     const json = JSON.stringify(serialize())
@@ -84,6 +98,14 @@ export default function TopBar(): React.JSX.Element {
         </div>
       </div>
       <div className="topbar-actions">
+        <button
+          className={`btn pro-topbar ${licensed ? 'pro-active' : ''}`}
+          title={licensed ? '专业版已激活,点击查看' : '升级专业版:去除导出水印、解锁全高清'}
+          onClick={() => setLicenseModalOpen(true)}
+        >
+          {licensed ? <CheckCircle2 size={14} /> : <Crown size={14} />}
+          {licensed ? 'Pro' : '专业版'}
+        </button>
         <button
           className="btn icon"
           title={

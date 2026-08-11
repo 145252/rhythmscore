@@ -5,9 +5,12 @@ import TopBar from './components/TopBar'
 import LeftPanel from './components/LeftPanel'
 import ScoreCanvas from './components/ScoreCanvas'
 import RightPanel from './components/RightPanel'
+import LicenseModal from './components/LicenseModal'
 
 export default function App(): React.JSX.Element {
   const theme = useStore((s) => s.theme)
+  const licenseModalOpen = useStore((s) => s.licenseModalOpen)
+  const setLicenseModalOpen = useStore((s) => s.setLicenseModalOpen)
 
   // 主题:system 跟随系统(监听系统切换自动变化),手动 light/dark 直接应用
   useEffect(() => {
@@ -39,6 +42,7 @@ export default function App(): React.JSX.Element {
         <ScoreCanvas />
         <RightPanel />
       </div>
+      <LicenseModal open={licenseModalOpen} onClose={() => setLicenseModalOpen(false)} />
     </div>
   )
 }

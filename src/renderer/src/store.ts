@@ -18,6 +18,9 @@ interface EditorState {
   licensed: boolean
   licenseKey: string | null
   setLicensed: (b: boolean, key: string | null) => void
+  /** 激活弹窗开关(App 顶层渲染,避免被顶栏层级遮挡) */
+  licenseModalOpen: boolean
+  setLicenseModalOpen: (b: boolean) => void
 
   score: ScoreSource | null
   /** 多页曲谱(按顺序合并为长图;顺序可调整) */
@@ -135,6 +138,8 @@ export const useStore = create<EditorState>((set, get) => ({
   licensed: false,
   licenseKey: null,
   setLicensed: (b, key) => set({ licensed: b, licenseKey: key }),
+  licenseModalOpen: false,
+  setLicenseModalOpen: (b) => set({ licenseModalOpen: b }),
   dirty: false,
 
   score: null,
