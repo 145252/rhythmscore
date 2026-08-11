@@ -57,8 +57,10 @@ function buildMenu(): void {
       submenu: [
         { role: 'reload', label: '重新加载' },
         { role: 'forceReload', label: '强制重新加载' },
-        { role: 'toggleDevTools', label: '开发者工具' },
-        { type: 'separator' },
+        // 生产版不提供开发者工具入口(渲染层明文,防调试逆向)
+        ...(isDev
+          ? ([{ role: 'toggleDevTools', label: '开发者工具' }, { type: 'separator' }] as MenuItemConstructorOptions[])
+          : []),
         { role: 'resetZoom', label: '实际大小' },
         { role: 'zoomIn', label: '放大' },
         { role: 'zoomOut', label: '缩小' },
@@ -105,6 +107,18 @@ function createWindow(): void {
   win.on('closed', () => {
     mainWin = null
   })
+
+  // 生产版拦截开发者工具快捷键(F12 / Cmd+Option+I / Ctrl+Shift+I)
+  if (!isDev) {
+    win.webContents.on('before-input-event', (_e, input) => {
+      const k = input.key.toLowerCase()
+      const devShortcut =
+        input.key === 'F12' ||
+        ((input.meta || input.control) && input.alt && k === 'i') ||
+        (input.control && input.shift && k === 'i')
+      if (devShortcut) _e.preventDefault()
+    })
+  }
 
   // 新窗口(外链)用系统浏览器打开
   win.webContents.setWindowOpenHandler(({ url }) => {
