@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react'
-import { Music4 } from 'lucide-react'
 import { useStore } from './store'
 import TopBar from './components/TopBar'
 import LeftPanel from './components/LeftPanel'
 import ScoreCanvas from './components/ScoreCanvas'
 import RightPanel from './components/RightPanel'
 import LicenseModal from './components/LicenseModal'
+import brandLogo from './assets/rhythmscore-logo.png'
 
 export default function App(): React.JSX.Element {
   const theme = useStore((s) => s.theme)
@@ -31,7 +31,7 @@ export default function App(): React.JSX.Element {
       <div className="drag-strip">
         <div className="brand">
           <span className="brand-logo">
-            <Music4 size={15} />
+            <img src={brandLogo} alt="" className="brand-logo-img" />
           </span>
           <span className="brand-name">RhythmScore</span>
         </div>
