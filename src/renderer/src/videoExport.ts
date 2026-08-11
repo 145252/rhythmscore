@@ -186,7 +186,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
 
   // ---- 曲谱 ----
   ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'medium'
+  ctx.imageSmoothingQuality = 'high'
   if (data.pre) {
     // 预渲染整图:与画布同尺度,直接裁剪绘制
     ctx.drawImage(data.pre, offsetX, offsetY, W, H, 0, 0, W, H)
