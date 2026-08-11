@@ -44,7 +44,7 @@ export default function LicenseModal({ open, onClose }: Props): React.JSX.Elemen
       setMachine(r.machine)
       onClose()
     } else {
-      setErr('激活码无效,请确认与上方机器码匹配')
+      setErr('激活码无效。请检查:① 激活码是否由上方【弹窗内显示的机器码】生成;② 只粘贴激活码本身,不要带机器码/空格')
     }
   }
 

@@ -61,24 +61,29 @@ def main() -> None:
             messagebox.showwarning('提示', '请先粘贴机器码')
             return
         rows = []
+        keys = []
         for m in lines:
             try:
-                rows.append(f'{m}\t{sign_machine(m, priv)}')
+                k = sign_machine(m, priv)
+                rows.append(f'{m}\t→\t{k}')
+                keys.append(k)
             except Exception as e:  # noqa: BLE001
-                rows.append(f'{m}\t[生成失败: {e}]')
+                rows.append(f'{m}\t→\t[生成失败: {e}]')
         out.delete('1.0', 'end')
         out.insert('1.0', '\n'.join(rows))
-        # 复制到剪贴板
+        # 只复制激活码本身(不含机器码),避免粘贴出错
         win.clipboard_clear()
-        win.clipboard_append('\n'.join(rows))
-        status.set(f'已生成 {len(rows)} 个激活码,已复制到剪贴板')
+        win.clipboard_append('\n'.join(keys))
+        status.set(f'已生成 {len(keys)} 个激活码,【激活码】已复制(粘贴到软件时只贴激活码)')
 
     def do_copy() -> None:
         txt = out.get('1.0', 'end').strip()
         if txt:
+            # 只复制每行的激活码(最后一个 \t 之后)
+            keys = [ln.rsplit('\t', 1)[-1].strip() for ln in txt.splitlines() if ln.strip()]
             win.clipboard_clear()
-            win.clipboard_append(txt)
-            status.set('已复制全部结果')
+            win.clipboard_append('\n'.join(keys))
+            status.set(f'已复制 {len(keys)} 个激活码')
 
     btns = tk.Frame(win, bg='#f4f5f7')
     btns.pack(fill='x', padx=14, pady=8)
