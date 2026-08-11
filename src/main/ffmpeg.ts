@@ -66,13 +66,14 @@ export async function exportVideo(
   await writeFile(webmPath, webmData)
 
   // 转码:webm(vp9/vp8+opus) → mp4(h264+aac);免费版缩到 720p 降清晰度
+  // preset faster + crf 18:对曲谱类静态画面几乎无画质损失,转码速度提升明显
   const vf = opts.lowQuality ? ['-vf', 'scale=-2:720'] : []
   await runFfmpeg([
     '-y',
     '-i', webmPath,
     '-c:v', 'libx264',
-    '-preset', 'medium',
-    '-crf', '17',
+    '-preset', 'faster',
+    '-crf', '18',
     '-pix_fmt', 'yuv420p',
     ...vf,
     '-c:a', 'aac',
