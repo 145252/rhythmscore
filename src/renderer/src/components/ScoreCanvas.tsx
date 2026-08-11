@@ -1066,12 +1066,12 @@ export default function ScoreCanvas(): React.JSX.Element {
                     )
                   })()
                 )}
-                {/* 对点编号框 + 时间戳:每个对点事件一个编号框,编号=演奏序号(反复的小节出现多个框) */}
+                {/* 对点编号框 + 时间戳:每个对点事件一个编号框,编号=小节编号(反复的小节出现多个框) */}
                 {markEvents.map((e, idx) => {
                   const m = measures.find((mm) => mm.n === e.n)
                   if (!m) return null
-                  // 编号 = 演奏序号(第几个演奏的事件;可自定义 label 覆盖)
-                  const label = e.label ?? idx + 1
+                  // 编号 = 该事件所属的小节编号(反复段落同小节多个框);演奏序号在事件面板中管理
+                  const label = e.n
                   const inRow = markEvents.filter((x, j) => x.n === e.n && j <= idx).length - 1
                   const total = markEvents.filter((x) => x.n === e.n).length
                   const slot = m.x1 - m.x0
@@ -1101,10 +1101,15 @@ export default function ScoreCanvas(): React.JSX.Element {
                         fontWeight={500}
                         fill={markLineColor}
                         cursor="pointer"
-                        onMouseDown={(ev2) => ev2.stopPropagation()}
+                        // 对点模式下不拦截鼠标(点击可继续打点);非对点模式点击打开编辑面板
+                        onMouseDown={(ev2) => {
+                          if (!useStore.getState().marking) ev2.stopPropagation()
+                        }}
                         onClick={(ev2) => {
-                          ev2.stopPropagation()
-                          setEditEvents(m)
+                          if (!useStore.getState().marking) {
+                            ev2.stopPropagation()
+                            setEditEvents(m)
+                          }
                         }}
                       >
                         {label}
