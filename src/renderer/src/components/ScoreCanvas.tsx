@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, FileUp, Layers, Maximize2, Trash2, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronDown, ChevronUp, FileUp, Layers, Maximize2, Redo2, Trash2, Undo2, X, ZoomIn, ZoomOut } from 'lucide-react'
 import { useStore } from '../store'
 import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, annotScale } from '../geometry'
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
@@ -147,6 +147,26 @@ export default function ScoreCanvas(): React.JSX.Element {
   const [dragOver, setDragOver] = useState(false)
   /** 鼠标悬停位置(图片坐标),用于虚拟预览线 */
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null)
+  const canUndo = useStore((s) => s.canUndo)
+  const canRedo = useStore((s) => s.canRedo)
+  const undo = useStore((s) => s.undo)
+  const redo = useStore((s) => s.redo)
+
+  // 撤销/重做快捷键(⌘Z / ⌘⇧Z / Ctrl+Z / Ctrl+Y)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) useStore.getState().redo()
+        else useStore.getState().undo()
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault()
+        useStore.getState().redo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
   /** 识别出的五线谱小节线位置(每行一个列表),吸附用 */
   const [detectLines, setDetectLines] = useState<number[][] | null>(null)
   /** 正在修改编号的小节 */
@@ -739,6 +759,13 @@ export default function ScoreCanvas(): React.JSX.Element {
         />
         {score && (
           <span className="canvas-zoom">
+            <button className="btn icon" onClick={undo} disabled={!canUndo} title="撤销 (⌘Z)">
+              <Undo2 size={14} />
+            </button>
+            <button className="btn icon" onClick={redo} disabled={!canRedo} title="重做 (⌘⇧Z)">
+              <Redo2 size={14} />
+            </button>
+            <span className="zoom-sep" />
             <button className="btn icon" onClick={() => zoomBy(1 / 1.2)}>
               <ZoomOut size={14} />
             </button>
@@ -824,8 +851,8 @@ export default function ScoreCanvas(): React.JSX.Element {
                             y1={m.top}
                             x2={lx}
                             y2={m.bottom}
-                            stroke={rgba(markLineColor, 0.35)}
-                            strokeWidth={1.2 * k}
+                            stroke={rgba(markLineColor, 0.55)}
+                            strokeWidth={1.4 * k}
                             strokeDasharray={`${3 * k} ${3 * k}`}
                           />
                         )

@@ -153,12 +153,50 @@ interface EditorState {
   clearProject: () => void
   setProjectName: (n: string) => void
   markSaved: () => void
+  /** 撤销/重做(编辑历史:线/拍线/对点/编号) */
+  canUndo: boolean
+  canRedo: boolean
+  undo: () => void
+  redo: () => void
 }
 
 // 清理历史版本残留的试用数据(试用机制已移除)
 if (localStorage.getItem('rs-trial-start')) localStorage.removeItem('rs-trial-start')
 
-export const useStore = create<EditorState>((set, get) => ({
+/** 编辑快照(可撤销/重做的数据范围:线/拍线/对点/编号) */
+interface EditSnapshot {
+  hLines: number[]
+  vLines: VLine[]
+  measureLabel: Record<number, number>
+  markEvents: MarkEvent[]
+  beatSubdivision: boolean
+  beatsPerMeasure: number
+  beatRatiosByMeasure: Record<number, number[]>
+}
+
+export const useStore = create<EditorState>((set, get) => {
+  // 编辑历史栈(undo/redo)
+  const MAX_HISTORY = 60
+  let past: EditSnapshot[] = []
+  let future: EditSnapshot[] = []
+  const snap = (s: EditorState): EditSnapshot => ({
+    hLines: [...s.hLines],
+    vLines: s.vLines.map((v) => ({ ...v })),
+    measureLabel: { ...s.measureLabel },
+    markEvents: s.markEvents.map((e) => ({ ...e })),
+    beatSubdivision: s.beatSubdivision,
+    beatsPerMeasure: s.beatsPerMeasure,
+    beatRatiosByMeasure: Object.fromEntries(Object.entries(s.beatRatiosByMeasure).map(([k, v]) => [k, [...v]]))
+  })
+  /** 提交一次历史(所有可撤销的编辑动作调用) */
+  const commit = (): void => {
+    past.push(snap(get()))
+    if (past.length > MAX_HISTORY) past.shift()
+    future = []
+    set({ canUndo: true, canRedo: false })
+  }
+
+  return {
   projectName: '未命名曲谱',
   theme: (localStorage.getItem('wb-theme') as 'system' | 'light' | 'dark') || 'system',
   setTheme: (t) => set({ theme: t }),
@@ -168,6 +206,8 @@ export const useStore = create<EditorState>((set, get) => ({
   licenseModalOpen: false,
   setLicenseModalOpen: (b) => set({ licenseModalOpen: b }),
   dirty: false,
+  canUndo: false,
+  canRedo: false,
 
   score: null,
   hLines: [],
@@ -249,12 +289,14 @@ export const useStore = create<EditorState>((set, get) => ({
     await useStore.getState().setScorePages(pages)
   },
   addHLine: (y) => {
+    commit()
     const s = get()
     const exists = s.hLines.some((v) => Math.abs(v - y) < 6)
     if (exists) return
     set({ hLines: [...s.hLines, y], dirty: true })
   },
   addVLine: (x, row, kind = 'measure') => {
+    commit()
     const s = get()
     const exists = s.vLines.some((v) => v.kind === kind && v.row === row && Math.abs(v.x - x) < 6)
     if (exists) return
@@ -272,6 +314,7 @@ export const useStore = create<EditorState>((set, get) => ({
     set({ vLines: s.vLines.map((v) => (v.id === id ? { ...v, x } : v)), dirty: true })
   },
   removeLine: (sel) => {
+    commit()
     const s = get()
     if (sel.type === 'h') {
       const sorted = [...s.hLines].sort((a, b) => a - b)
@@ -284,8 +327,14 @@ export const useStore = create<EditorState>((set, get) => ({
       set({ vLines: s.vLines.filter((v) => v.id !== sel.id), selected: null, dirty: true })
     }
   },
-  clearHLines: () => set({ hLines: [], vLines: [], selected: null, dirty: true }),
-  clearVLines: () => set({ vLines: [], selected: null, dirty: true }),
+  clearHLines: () => {
+    commit()
+    set({ hLines: [], vLines: [], selected: null, dirty: true })
+  },
+  clearVLines: () => {
+    commit()
+    set({ vLines: [], selected: null, dirty: true })
+  },
 
   setTool: (t) => set({ tool: t }),
   setLineWidth: (w) => set({ lineWidth: w, dirty: true }),
@@ -297,7 +346,10 @@ export const useStore = create<EditorState>((set, get) => ({
   snapEnabled: false,
   setSnapEnabled: (b) => set({ snapEnabled: b }),
   measureLabel: {},
-  setMeasureLabel: (m) => set({ measureLabel: m, dirty: true }),
+  setMeasureLabel: (m) => {
+    commit()
+    set({ measureLabel: m, dirty: true })
+  },
 
   setAudio: (name, dataUrl) =>
     set({ audioName: name, audioDataUrl: dataUrl, isPlaying: false, currentTime: 0, dirty: true }),
@@ -318,12 +370,14 @@ export const useStore = create<EditorState>((set, get) => ({
   setWaveform: (peaks) => set({ waveformPeaks: peaks }),
   selectMeasure: (n) => set({ currentMeasure: n }),
   addMarkEvent: (n, time) => {
+    commit()
     const evs = [...get().markEvents, { n, time, base: time }]
     evs.sort((a, b) => a.time - b.time)
     // 打点后预选框自动指向下一个小节(物理顺序)
     set({ markEvents: evs, markingNext: n + 1, dirty: true })
   },
   adjustMarkEvent: (n, delta) => {
+    commit()
     const evs = [...get().markEvents]
     let idx = -1
     for (let i = evs.length - 1; i >= 0; i--) {
@@ -340,8 +394,12 @@ export const useStore = create<EditorState>((set, get) => ({
   },
   setMarking: (b) => set({ marking: b }),
   setMarkingNext: (n) => set({ markingNext: n }),
-  clearMarkEvents: () => set({ markEvents: [], currentMeasure: null, markingNext: null, dirty: true }),
+  clearMarkEvents: () => {
+    commit()
+    set({ markEvents: [], currentMeasure: null, markingNext: null, dirty: true })
+  },
   adjustMarkEventByIndex: (idx, delta) => {
+    commit()
     const evs = [...get().markEvents]
     if (idx < 0 || idx >= evs.length) return
     const limit = get().audioDuration > 0 ? get().audioDuration : Number.MAX_SAFE_INTEGER
@@ -350,6 +408,7 @@ export const useStore = create<EditorState>((set, get) => ({
     set({ markEvents: evs, dirty: true })
   },
   setMarkEventNumber: (idx, newN) => {
+    commit()
     const evs = [...get().markEvents]
     if (idx < 0 || idx >= evs.length || !Number.isFinite(newN) || newN < 1) return
     // 该事件及之后所有事件的演奏序号顺延为 newN, newN+1…(不改变物理小节引用,播放仍按物理小节跳转)
@@ -359,6 +418,7 @@ export const useStore = create<EditorState>((set, get) => ({
     set({ markEvents: evs, dirty: true })
   },
   setMarkEventTime: (idx, time) => {
+    commit()
     const evs = [...get().markEvents]
     if (idx < 0 || idx >= evs.length) return
     const limit = get().audioDuration > 0 ? get().audioDuration : Number.MAX_SAFE_INTEGER
@@ -367,6 +427,7 @@ export const useStore = create<EditorState>((set, get) => ({
     set({ markEvents: evs, dirty: true })
   },
   removeMarkEvent: (idx) => {
+    commit()
     const evs = [...get().markEvents]
     if (idx < 0 || idx >= evs.length) return
     evs.splice(idx, 1)
@@ -382,7 +443,10 @@ export const useStore = create<EditorState>((set, get) => ({
   setCursorTrailOpacity: (o) => set({ cursorTrailOpacity: o }),
   setCursorTrailRange: (r) => set({ cursorTrailRange: r }),
   setCursorBall: (b) => set({ cursorBall: b }),
-  setBeatSubdivision: (b) => set({ beatSubdivision: b }),
+  setBeatSubdivision: (b) => {
+    commit()
+    set({ beatSubdivision: b })
+  },
   setBeatsPerMeasure: (n) => {
     const count = Math.max(2, Math.min(12, Math.round(n)))
     // 改拍号后所有小节重置为等分(清空独立微调)
@@ -395,6 +459,7 @@ export const useStore = create<EditorState>((set, get) => ({
     set({ beatRatiosByMeasure: { ...useStore.getState().beatRatiosByMeasure, [measureN]: arr } })
   },
   addBeatLine: (measureN, ratio) => {
+    commit()
     const cur = useStore.getState().beatRatiosByMeasure[measureN] ?? []
     // 按位置插入并保持有序(去重容差 0.002),钳制在 (0,1)
     const r = Math.min(Math.max(ratio, 0.01), 0.99)
@@ -403,9 +468,10 @@ export const useStore = create<EditorState>((set, get) => ({
     for (const v of arr) {
       if (dedup.length === 0 || Math.abs(dedup[dedup.length - 1] - v) > 0.002) dedup.push(v)
     }
-    set({ beatRatiosByMeasure: { ...useStore.getState().beatRatiosByMeasure, [measureN]: dedup } })
+    set({ beatRatiosByMeasure: { ...useStore.getState().beatRatiosByMeasure, [measureN]: dedup }, dirty: true })
   },
   removeBeatLine: (measureN, index) => {
+    commit()
     const cur = useStore.getState().beatRatiosByMeasure[measureN]
     if (!cur) return
     const arr = [...cur]
@@ -415,7 +481,10 @@ export const useStore = create<EditorState>((set, get) => ({
     else next[measureN] = arr
     set({ beatRatiosByMeasure: next, dirty: true })
   },
-  resetBeatRatios: () => set({ beatRatiosByMeasure: {} }),
+  resetBeatRatios: () => {
+    commit()
+    set({ beatRatiosByMeasure: {}, dirty: true })
+  },
 
   setVideoMode: (m) => set({ videoMode: m }),
   setJumpColor: (c) => set({ jumpColor: c }),
@@ -498,6 +567,21 @@ export const useStore = create<EditorState>((set, get) => ({
       markingNext: null,
       beatSubdivision: false,
       beatsPerMeasure: 4,
-      beatRatiosByMeasure: {}
-    })
-}))
+      beatRatiosByMeasure: {},
+      canUndo: false,
+      canRedo: false
+    }),
+  undo: () => {
+    if (past.length === 0) return
+    future.push(snap(get()))
+    const prev = past.pop()!
+    set({ ...prev, selected: null, dirty: true, canUndo: past.length > 0, canRedo: true })
+  },
+  redo: () => {
+    if (future.length === 0) return
+    past.push(snap(get()))
+    const next = future.pop()!
+    set({ ...next, selected: null, dirty: true, canUndo: true, canRedo: future.length > 0 })
+  }
+  }
+})
