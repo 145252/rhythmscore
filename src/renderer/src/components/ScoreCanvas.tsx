@@ -5,7 +5,7 @@ import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, an
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
-import { ballPos, beatCursorRatio, beatRatiosFor, buildMeasures, currentBeatStart, emptyBallState, eventAtTime, measureAtTime, trailRegions, type BallJumpState } from '../videoExport'
+import { ballPos, beatCursorRatio, beatRatiosFor, buildMeasures, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
@@ -138,7 +138,6 @@ export default function ScoreCanvas(): React.JSX.Element {
   const cursorLineRef = useRef<SVGLineElement>(null)
   const cursorGlowRef = useRef<SVGLineElement>(null)
   const cursorBallRef = useRef<SVGCircleElement>(null)
-  const ballJumpRef = useRef<BallJumpState>(emptyBallState())
   const trailRectsRef = useRef<(SVGRectElement | null)[]>([])
   /** 颜色进度遮罩最多支持的行数(整谱模式每行一个矩形,一般不会超过) */
   const MAX_TRAIL_RECTS = 24
@@ -305,17 +304,23 @@ export default function ScoreCanvas(): React.JSX.Element {
         el.setAttribute('y2', String(m.bottom))
         el.setAttribute('stroke-width', String(cw))
         el.setAttribute('visibility', 'visible')
-        // 拍点小球:跟随光标线移动,拍起点处(有分拍=每拍线,无分拍=小节起点)纵向跳动
+        // 拍点小球:拍段内弧线飞行(起点起跳→终点落下);无分拍=整小节,有分拍=每个拍线段
         const ball = cursorBallRef.current
         if (ball) {
           if (st.cursorBall) {
             const n = curRatios.length + 1
-            const beatIdx = Math.min(Math.floor(prog * n), n - 1)
-            const key = st.beatSubdivision && curRatios.length >= 1 ? m.n * 100 + beatIdx : m.n
-            const local = st.beatSubdivision && curRatios.length >= 1 ? prog * n - beatIdx : prog
-            const arcH = Math.max(26, cw * 5)
-            const pos = ballPos(key, cx, m.top, local, arcH, ballJumpRef.current)
-            ballJumpRef.current = pos.state
+            let segStart = m.x0
+            let segEnd = m.x1
+            let local = prog
+            if (st.beatSubdivision && curRatios.length >= 1) {
+              const sorted = [0, ...curRatios, 1].slice().sort((a, b) => a - b)
+              const beat = Math.min(Math.floor(prog * n), n - 1)
+              segStart = m.x0 + (m.x1 - m.x0) * sorted[beat]
+              segEnd = m.x0 + (m.x1 - m.x0) * sorted[beat + 1]
+              local = prog * n - beat
+            }
+            const arcH = Math.max(24, cw * 5)
+            const pos = ballPos(segStart, segEnd, local, m.top, arcH)
             const rad = Math.max(10, cw * 2.2)
             ball.setAttribute('cx', String(pos.x))
             ball.setAttribute('cy', String(pos.y - rad * 0.6))

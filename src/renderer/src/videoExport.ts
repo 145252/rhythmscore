@@ -144,37 +144,20 @@ export function currentBeatStart(prog: number, beatsPerMeasure: number, beatRati
   return sorted[beat]
 }
 
-/** 拍点小球跳跃状态 */
-export interface BallJumpState {
-  lastKey: number
-  jumpAt: number
-}
-
-export const emptyBallState = (): BallJumpState => ({ lastKey: -1, jumpAt: 0 })
-
 /**
- * 拍点小球:始终跟随光标线(x 与标线同步),拍起点处(有分拍=每拍线,无分拍=小节起点)做一次纵向抛物线跳动。
- * beatKey = 当前拍标识(变化即触发跳跃);local = 拍内进度(跳跃计时用);arcH = 跳跃高度。
+ * 拍点小球:在一个拍段内做抛物线飞行——从拍段起点起跳,弧线飞到拍段终点落下。
+ * segStart/segEnd = 拍段起止 x(无分拍=小节左右边界;有分拍=相邻拍线/小节边界);
+ * local = 拍内进度(0→1);arcH = 弧线高度;u=0 起点贴线、u=1 终点贴线。
  */
 export function ballPos(
-  beatKey: number,
-  cursorX: number,
-  baseY: number,
+  segStart: number,
+  segEnd: number,
   local: number,
-  arcH: number,
-  state: BallJumpState
-): { x: number; y: number; state: BallJumpState } {
-  let st = state
-  if (beatKey !== st.lastKey) {
-    st = { lastKey: beatKey, jumpAt: local }
-  }
-  const dur = 0.25
-  const dt = local - st.jumpAt
-  if (dt >= 0 && dt < dur) {
-    const u = dt / dur
-    return { x: cursorX, y: baseY - arcH * 4 * u * (1 - u), state: st }
-  }
-  return { x: cursorX, y: baseY, state: st }
+  baseY: number,
+  arcH: number
+): { x: number; y: number } {
+  const u = clamp(local, 0, 1)
+  return { x: segStart + (segEnd - segStart) * u, y: baseY - arcH * 4 * u * (1 - u) }
 }
 
 /**
@@ -203,13 +186,10 @@ let smoothInit = false
 // 跳框淡入淡出状态(切换小节时从 0 淡入)
 let jumpFade = 0
 let jumpLastN = -1
-// 拍点小球跳跃状态
-let ballJump: BallJumpState = emptyBallState()
 export function resetSmooth(): void {
   smoothInit = false
   jumpFade = 0
   jumpLastN = -1
-  ballJump = emptyBallState()
 }
 
 /** 渲染一帧到画布(画布尺寸 W×H)。offset 通过 lerp 平滑逼近目标,滚动连贯 */
@@ -415,15 +395,21 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         }
       }
       ctx.lineCap = 'round'
-      // 拍点小球:跟随光标线移动,拍起点处(有分拍=每拍线,无分拍=小节起点)纵向跳动
+      // 拍点小球:拍段内弧线飞行(起点起跳→终点落下);无分拍=整小节一个拍段,有分拍=每个拍线段
       if (data.cursorBall) {
         const n = curRatios.length + 1
-        const beatIdx = Math.min(Math.floor(prog * n), n - 1)
-        const key = data.beatSubdivision && curRatios.length >= 1 ? curM.n * 100 + beatIdx : curM.n
-        const local = data.beatSubdivision && curRatios.length >= 1 ? prog * n - beatIdx : prog
-        const arcH = Math.max(34, bh * 0.28)
-        const pos = ballPos(key, cursorX, by, local, arcH, ballJump)
-        ballJump = pos.state
+        let segStart = bx
+        let segEnd = bx + bw
+        let local = prog
+        if (data.beatSubdivision && curRatios.length >= 1) {
+          const sorted = [0, ...curRatios, 1].slice().sort((a, b) => a - b)
+          const beat = Math.min(Math.floor(prog * n), n - 1)
+          segStart = bx + bw * sorted[beat]
+          segEnd = bx + bw * sorted[beat + 1]
+          local = prog * n - beat
+        }
+        const arcH = Math.max(30, bh * 0.3)
+        const pos = ballPos(segStart, segEnd, local, by, arcH)
         const rad = Math.max(11, data.cursorWidth * 2.2)
         const ballY = pos.y - rad * 0.6
         ctx.beginPath()
