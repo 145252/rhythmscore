@@ -50,12 +50,7 @@ obfuscate(path.join(out, 'main', 'index.js'), NODE_OPTS)
 obfuscate(path.join(out, 'main', 'license.js'), NODE_OPTS)
 obfuscate(path.join(out, 'preload', 'index.js'), NODE_OPTS)
 
-// 渲染层(保守;跳过 pdf.worker 等无业务逻辑的第三方库)
-const assets = path.join(out, 'renderer', 'assets')
-if (fs.existsSync(assets)) {
-  for (const f of fs.readdirSync(assets)) {
-    if (f.endsWith('.js') && !f.includes('pdf.worker')) obfuscate(path.join(assets, f), BROWSER_OPTS)
-  }
-}
+// 渲染层不混淆:避免拖慢 60fps 光标跟随渲染;防篡改由完整性自检兜底(renderer 仍在校验清单内)
+console.log('[obfuscate] renderer 跳过混淆(保渲染性能)')
 
 console.log('[obfuscate] done')
