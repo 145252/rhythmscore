@@ -334,24 +334,25 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
   ctx.textAlign = 'start'
   ctx.textBaseline = 'alphabetic'
 
-  // ---- 免费版水印:动态斜向移动 + 深描边白字(深浅背景都可见,防裁剪) ----
+  // ---- 免费版水印:小尺寸低透明 + 画面中带小范围缓慢游走(尽量不遮挡谱面) ----
   if (data.watermark) {
     const f = Math.max(W, H)
     ctx.save()
-    ctx.font = `700 ${Math.round(f * 0.032)}px -apple-system, "PingFang SC", sans-serif`
+    ctx.font = `600 ${Math.round(f * 0.023)}px -apple-system, "PingFang SC", sans-serif`
     const tw = ctx.measureText('RhythmScore').width
-    const th = f * 0.038
-    const spanX = Math.max(W - tw, 1)
-    const spanY = Math.max(H - th, 1)
-    const px = spanX * 0.12 + ((t * 0.055 * spanX) % spanX)
-    const py = spanY * 0.1 + ((t * 0.042 * spanY) % spanY)
+    const th = f * 0.028
+    // 只在画面中带的小区域(横 30%→70%,竖 30%→70%)内缓慢移动
+    const rangeX = Math.max((W - tw) * 0.4, 1)
+    const rangeY = Math.max((H - th) * 0.4, 1)
+    const px = W * 0.3 + ((t * 0.03 * rangeX) % rangeX)
+    const py = H * 0.3 + ((t * 0.024 * rangeY) % rangeY)
     ctx.translate(px, py)
-    ctx.rotate(-0.12)
+    ctx.rotate(-0.08)
     ctx.lineJoin = 'round'
-    ctx.strokeStyle = 'rgba(15,25,45,0.4)'
-    ctx.lineWidth = Math.max(2.5, f * 0.004)
+    ctx.strokeStyle = 'rgba(15,25,45,0.22)'
+    ctx.lineWidth = Math.max(1.8, f * 0.0025)
     ctx.strokeText('RhythmScore', 0, 0)
-    ctx.fillStyle = 'rgba(255,255,255,0.55)'
+    ctx.fillStyle = 'rgba(255,255,255,0.34)'
     ctx.fillText('RhythmScore', 0, 0)
     ctx.restore()
   }
