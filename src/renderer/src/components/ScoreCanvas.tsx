@@ -112,6 +112,8 @@ export default function ScoreCanvas(): React.JSX.Element {
   const markingNext = useStore((s) => s.markingNext)
   const cursorColor = useStore((s) => s.cursorColor)
   const cursorOpacity = useStore((s) => s.cursorOpacity)
+  const cursorTrail = useStore((s) => s.cursorTrail)
+  const cursorTrailOpacity = useStore((s) => s.cursorTrailOpacity)
   const markLineColor = useStore((s) => s.markLineColor)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
@@ -129,6 +131,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cursorLineRef = useRef<SVGLineElement>(null)
   const cursorGlowRef = useRef<SVGLineElement>(null)
+  const trailRectRef = useRef<SVGRectElement>(null)
   const [drag, setDrag] = useState<DragState>(null)
   const [dragOver, setDragOver] = useState(false)
   /** 鼠标悬停位置(图片坐标),用于虚拟预览线 */
@@ -246,6 +249,7 @@ export default function ScoreCanvas(): React.JSX.Element {
       for (const x of [cursorGlowRef.current, cursorLineRef.current]) {
         if (x) x.setAttribute('visibility', 'hidden')
       }
+      if (trailRectRef.current) trailRectRef.current.setAttribute('visibility', 'hidden')
     }
     const loop = (): void => {
       const st = useStore.getState()
@@ -283,6 +287,21 @@ export default function ScoreCanvas(): React.JSX.Element {
         el.setAttribute('y2', String(m.bottom))
         el.setAttribute('stroke-width', String(cw))
         el.setAttribute('visibility', 'visible')
+        // 颜色进度:光标走过区域覆盖同色遮罩
+        const trail = trailRectRef.current
+        if (trail) {
+          if (st.cursorTrail && cx > m.x0) {
+            trail.setAttribute('x', String(m.x0))
+            trail.setAttribute('y', String(m.top))
+            trail.setAttribute('width', String(cx - m.x0))
+            trail.setAttribute('height', String(m.bottom - m.top))
+            trail.setAttribute('fill', st.cursorColor)
+            trail.setAttribute('fill-opacity', String(clamp(st.cursorTrailOpacity, 0.02, 0.6)))
+            trail.setAttribute('visibility', 'visible')
+          } else {
+            trail.setAttribute('visibility', 'hidden')
+          }
+        }
       } else {
         hideAll()
       }
@@ -881,6 +900,18 @@ export default function ScoreCanvas(): React.JSX.Element {
                     />
                   </g>
                 )}
+                {/* 颜色进度遮罩(光标走过区域,同色覆盖) */}
+                <rect
+                  ref={trailRectRef}
+                  x="0"
+                  y="0"
+                  width="0"
+                  height="0"
+                  fill={cursorColor}
+                  fillOpacity={cursorTrailOpacity}
+                  visibility="hidden"
+                  pointerEvents="none"
+                />
                 {/* 播放预览光标线(rAF 实时更新:轻光晕 + 纯色主线,浓度由 opacity 控制) */}
                 <line
                   ref={cursorGlowRef}

@@ -28,9 +28,13 @@ export default function RightPanel(): React.JSX.Element {
   const cursorColor = useStore((s) => s.cursorColor)
   const cursorWidth = useStore((s) => s.cursorWidth)
   const cursorOpacity = useStore((s) => s.cursorOpacity)
+  const cursorTrail = useStore((s) => s.cursorTrail)
+  const cursorTrailOpacity = useStore((s) => s.cursorTrailOpacity)
   const setCursorColor = useStore((s) => s.setCursorColor)
   const setCursorWidth = useStore((s) => s.setCursorWidth)
   const setCursorOpacity = useStore((s) => s.setCursorOpacity)
+  const setCursorTrail = useStore((s) => s.setCursorTrail)
+  const setCursorTrailOpacity = useStore((s) => s.setCursorTrailOpacity)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
   const jumpOpacity = useStore((s) => s.jumpOpacity)
@@ -98,6 +102,8 @@ export default function RightPanel(): React.JSX.Element {
           cursorColor,
           cursorWidth,
           cursorOpacity,
+          cursorTrail,
+          cursorTrailOpacity,
           jumpColor,
           jumpOpacity,
           nextColor,
@@ -203,6 +209,29 @@ export default function RightPanel(): React.JSX.Element {
               />
               <span className="lv">{Math.round(cursorOpacity * 100)}%</span>
             </div>
+            <label className="split-opt">
+              <input
+                type="checkbox"
+                checked={cursorTrail}
+                onChange={(e) => setCursorTrail(e.target.checked)}
+                disabled={busy}
+              />
+              颜色进度(光标走过区域覆盖同色)
+            </label>
+            {cursorTrail && (
+              <div className="cursor-width-row">
+                <span>进度浓度</span>
+                <input
+                  type="range"
+                  min={5}
+                  max={60}
+                  value={Math.round(cursorTrailOpacity * 100)}
+                  onChange={(e) => setCursorTrailOpacity(Number(e.target.value) / 100)}
+                  disabled={busy}
+                />
+                <span className="lv">{Math.round(cursorTrailOpacity * 100)}%</span>
+              </div>
+            )}
             <ColorSwatches value={cursorColor} onChange={setCursorColor} disabled={busy} />
           </>
         )}

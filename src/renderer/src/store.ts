@@ -108,9 +108,15 @@ interface EditorState {
   cursorWidth: number
   /** 光标线浓度(颜色深浅,0.2~1) */
   cursorOpacity: number
+  /** 颜色进度:光标走过区域覆盖同色遮罩 */
+  cursorTrail: boolean
+  /** 颜色进度遮罩浓度(0.05~0.6) */
+  cursorTrailOpacity: number
   setCursorColor: (c: string) => void
   setCursorWidth: (w: number) => void
   setCursorOpacity: (o: number) => void
+  setCursorTrail: (b: boolean) => void
+  setCursorTrailOpacity: (o: number) => void
 
   // ---------- 视频导出:跟随模式与跳框高亮颜色 ----------
   videoMode: 'continuous' | 'jump'
@@ -170,6 +176,8 @@ export const useStore = create<EditorState>((set, get) => ({
   cursorColor: '#E24B4A',
   cursorWidth: 5,
   cursorOpacity: 0.85,
+  cursorTrail: false,
+  cursorTrailOpacity: 0.3,
 
   videoMode: 'continuous',
   jumpColor: '#E24B4A',
@@ -347,6 +355,8 @@ export const useStore = create<EditorState>((set, get) => ({
   setCursorColor: (c) => set({ cursorColor: c }),
   setCursorWidth: (w) => set({ cursorWidth: w }),
   setCursorOpacity: (o) => set({ cursorOpacity: o }),
+  setCursorTrail: (b) => set({ cursorTrail: b }),
+  setCursorTrailOpacity: (o) => set({ cursorTrailOpacity: o }),
 
   setVideoMode: (m) => set({ videoMode: m }),
   setJumpColor: (c) => set({ jumpColor: c }),

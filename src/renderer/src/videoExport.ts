@@ -13,16 +13,12 @@ import type { MarkEvent, VLine } from './types'
 import { getAudio } from './audioPlayer'
 
 export type FollowMode = 'continuous' | 'jump'
-export type VideoRatio = '单行' | '连滚' | '3:4' | '4:3' | '9:16' | '16:9' | '18:9'
+export type VideoRatio = '单行' | '9:16' | '16:9'
 
 export const RATIO_SIZES: Record<VideoRatio, { w: number; h: number }> = {
   单行: { w: 1920, h: 1080 },
-  连滚: { w: 1920, h: 1080 },
-  '3:4': { w: 1080, h: 1440 },
-  '4:3': { w: 1440, h: 1080 },
   '9:16': { w: 1080, h: 1920 },
-  '16:9': { w: 1920, h: 1080 },
-  '18:9': { w: 1920, h: 960 }
+  '16:9': { w: 1920, h: 1080 }
 }
 
 interface Measure {
@@ -59,6 +55,10 @@ export interface RenderData {
   cursorWidth: number
   /** 光标线浓度(0.2~1,颜色深浅) */
   cursorOpacity: number
+  /** 颜色进度:光标走过区域覆盖同色遮罩 */
+  cursorTrail: boolean
+  /** 颜色进度遮罩浓度 */
+  cursorTrailOpacity: number
   /** 免费版:导出时叠加动态移动水印(专业版 false) */
   watermark: boolean
   /** 跳框模式高亮颜色 */
@@ -147,13 +147,8 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
     else targetX = clamp(((curM.x0 + curM.x1) / 2 - data.leftBorder) * scale - W / 2, 0, dispW - W)
     targetY = 0
     dispH = H
-  } else if (data.ratio === '连滚') {
-    scale = W / data.scoreW
-    dispH = data.scoreH * scale
-    if (dispH <= H) targetY = (H - dispH) / 2
-    else targetY = (dispH - H) * (t / Math.max(data.totalDuration, 0.001))
-    targetX = 0
   } else {
+    // 整谱跟随:铺满宽度,视口跟随当前小节垂直居中滚动(16:9 / 9:16)
     scale = W / data.scoreW
     dispH = data.scoreH * scale
     if (dispH <= H) {
@@ -312,6 +307,11 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
       }
       const cursorX = bx + bw * prog
       const op = clamp(data.cursorOpacity, 0.2, 1)
+      // 颜色进度:光标走过区域覆盖同色遮罩(当前小节内,从起点到光标线)
+      if (data.cursorTrail && cursorX > bx) {
+        ctx.fillStyle = hexToRgba(data.cursorColor, clamp(data.cursorTrailOpacity, 0.02, 0.6))
+        ctx.fillRect(bx, by, cursorX - bx, bh)
+      }
       ctx.lineCap = 'round'
       // 轻光晕(弱化)
       ctx.strokeStyle = hexToRgba(data.cursorColor, 0.07 * op)
