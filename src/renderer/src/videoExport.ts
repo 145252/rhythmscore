@@ -127,9 +127,9 @@ export function defaultBeatRatios(count: number): number[] {
   return ratios
 }
 
-/** 取某小节的拍线比例(缺失用等分) */
-export function beatRatiosFor(byMeasure: Record<number, number[]>, n: number, beatsPerMeasure: number): number[] {
-  return byMeasure[n] ?? defaultBeatRatios(beatsPerMeasure)
+/** 取某小节的拍线比例(缺失=无拍线) */
+export function beatRatiosFor(byMeasure: Record<number, number[]>, n: number, _beatsPerMeasure: number): number[] {
+  return byMeasure[n] ?? []
 }
 
 /**
@@ -342,11 +342,11 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         const end = data.events[idx + 1]?.time ?? data.totalDuration
         prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
       }
-      // 光标在小节内的位置比例(拍号细分开启时按每拍实际拍距走)
+      // 光标在小节内的位置比例(拍号细分开启时按每拍实际拍距走;拍数=拍线数+1)
       const curRatios = data.beatSubdivision ? beatRatiosFor(data.beatRatiosByMeasure, curM.n, data.beatsPerMeasure) : []
       const ratioInMeasure =
-        data.beatSubdivision && curRatios.length === data.beatsPerMeasure - 1
-          ? beatCursorRatio(prog, data.beatsPerMeasure, curRatios)
+        data.beatSubdivision && curRatios.length >= 1
+          ? beatCursorRatio(prog, curRatios.length + 1, curRatios)
           : prog
       const cursorX = bx + bw * ratioInMeasure
       const op = clamp(data.cursorOpacity, 0.2, 1)

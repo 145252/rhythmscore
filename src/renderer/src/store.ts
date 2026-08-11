@@ -118,11 +118,12 @@ interface EditorState {
   beatSubdivision: boolean
   /** 每小节拍数(拍号分子,如 4/4=4) */
   beatsPerMeasure: number
-  /** 每小节独立的拍线位置比例(0-1,长度=拍数-1;缺失的小节用等分) */
+  /** 每小节独立的拍线位置比例(0-1;开启细分后画竖线=添加拍线,可拖动微调;缺失=无拍线) */
   beatRatiosByMeasure: Record<number, number[]>
   setBeatSubdivision: (b: boolean) => void
   setBeatsPerMeasure: (n: number) => void
   setBeatRatio: (measureN: number, index: number, ratio: number) => void
+  addBeatLine: (measureN: number, ratio: number) => void
   resetBeatRatios: () => void
   setCursorColor: (c: string) => void
   setCursorWidth: (w: number) => void
@@ -383,14 +384,20 @@ export const useStore = create<EditorState>((set, get) => ({
   },
   setBeatRatio: (measureN, index, ratio) => {
     const cur = useStore.getState().beatRatiosByMeasure[measureN]
-    const arr = cur ? [...cur] : (() => {
-      const count = useStore.getState().beatsPerMeasure
-      const ratios: number[] = []
-      for (let i = 1; i < count; i++) ratios.push(i / count)
-      return ratios
-    })()
+    const arr = cur ? [...cur] : []
     if (index >= 0 && index < arr.length) arr[index] = ratio
     set({ beatRatiosByMeasure: { ...useStore.getState().beatRatiosByMeasure, [measureN]: arr } })
+  },
+  addBeatLine: (measureN, ratio) => {
+    const cur = useStore.getState().beatRatiosByMeasure[measureN] ?? []
+    // 按位置插入并保持有序(去重容差 0.002),钳制在 (0,1)
+    const r = Math.min(Math.max(ratio, 0.01), 0.99)
+    const arr = [...cur, r].sort((a, b) => a - b)
+    const dedup: number[] = []
+    for (const v of arr) {
+      if (dedup.length === 0 || Math.abs(dedup[dedup.length - 1] - v) > 0.002) dedup.push(v)
+    }
+    set({ beatRatiosByMeasure: { ...useStore.getState().beatRatiosByMeasure, [measureN]: dedup } })
   },
   resetBeatRatios: () => set({ beatRatiosByMeasure: {} }),
 

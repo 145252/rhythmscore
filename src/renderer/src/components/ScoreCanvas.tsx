@@ -119,6 +119,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   const beatsPerMeasure = useStore((s) => s.beatsPerMeasure)
   const beatRatiosByMeasure = useStore((s) => s.beatRatiosByMeasure)
   const setBeatRatio = useStore((s) => s.setBeatRatio)
+  const addBeatLine = useStore((s) => s.addBeatLine)
   const markLineColor = useStore((s) => s.markLineColor)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
@@ -280,11 +281,11 @@ export default function ScoreCanvas(): React.JSX.Element {
         const start = ev.time
         const end = st.markEvents[idx + 1]?.time ?? st.audioDuration
         const prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
-        // 拍号细分开启时,光标按每拍实际拍距走(该小节独立拍线,缺失用等分)
+        // 拍号细分开启时,光标按每拍实际拍距走(该小节独立拍线,拍数=拍线数+1)
         const curRatios = st.beatSubdivision ? beatRatiosFor(st.beatRatiosByMeasure, m.n, st.beatsPerMeasure) : []
         const ratioInMeasure =
-          st.beatSubdivision && curRatios.length === st.beatsPerMeasure - 1
-            ? beatCursorRatio(prog, st.beatsPerMeasure, curRatios)
+          st.beatSubdivision && curRatios.length >= 1
+            ? beatCursorRatio(prog, curRatios.length + 1, curRatios)
             : prog
         const cx = m.x0 + (m.x1 - m.x0) * ratioInMeasure
         const cw = clamp((st.cursorWidth * st.score.width) / 1920, 1, 40)
@@ -428,6 +429,15 @@ export default function ScoreCanvas(): React.JSX.Element {
       return
     }
     if (tool === 'vline') {
+      // 拍号细分开启时:默认画"该小节内拍分线"(画哪放哪);Shift 仍画小节线
+      if (beatSubdivision && !e.shiftKey) {
+        const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
+        const m = measuresList.find((mm) => y >= mm.top && y <= mm.bottom && x >= mm.x0 && x <= mm.x1)
+        if (m) {
+          addBeatLine(m.n, (x - m.x0) / (m.x1 - m.x0))
+          return
+        }
+      }
       // 无横线时自动画贯穿线(左右边框);有横线时默认画行内小节线,Shift 强制贯穿
       const kind: 'full' | 'measure' = hLines.length === 0 || e.shiftKey ? 'full' : 'measure'
       const row = kind === 'full' ? 0 : rowAt(hLines, y, score.height)
