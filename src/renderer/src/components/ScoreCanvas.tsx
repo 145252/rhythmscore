@@ -120,6 +120,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   const beatRatiosByMeasure = useStore((s) => s.beatRatiosByMeasure)
   const setBeatRatio = useStore((s) => s.setBeatRatio)
   const addBeatLine = useStore((s) => s.addBeatLine)
+  const removeBeatLine = useStore((s) => s.removeBeatLine)
   const markLineColor = useStore((s) => s.markLineColor)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
@@ -142,6 +143,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   /** 颜色进度遮罩最多支持的行数(整谱模式每行一个矩形,一般不会超过) */
   const MAX_TRAIL_RECTS = 24
   const [drag, setDrag] = useState<DragState>(null)
+  const [erasing, setErasing] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   /** 鼠标悬停位置(图片坐标),用于虚拟预览线 */
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null)
@@ -445,6 +447,12 @@ export default function ScoreCanvas(): React.JSX.Element {
   const onMouseDown = (e: React.MouseEvent): void => {
     if (e.button !== 0 || !score) return
     const { x, y } = toImage(e)
+    if (tool === 'eraser') {
+      // 橡皮擦:擦除命中的拍线/竖线/横线(可按住拖动连续擦)
+      eraseAt(x, y)
+      setErasing(true)
+      return
+    }
     if (tool === 'hline') {
       // 画线落点应用吸附(实时读取开关状态,避免闭包过期)
       const snapNow = useStore.getState().snapEnabled
@@ -559,6 +567,10 @@ export default function ScoreCanvas(): React.JSX.Element {
   }
 
   const onMouseMove = (e: React.MouseEvent): void => {
+    if (erasing) {
+      if (score) eraseAt(toImage(e).x, toImage(e).y)
+      return
+    }
     if (drag) {
       if (drag.kind === 'moveH') {
         updateHLine(drag.sortedIdx, drag.origY + (e.clientY - drag.sy) / scale)
@@ -583,6 +595,39 @@ export default function ScoreCanvas(): React.JSX.Element {
 
   const endDrag = (): void => {
     setDrag(null)
+    setErasing(false)
+  }
+
+  /** 橡皮擦:按优先级擦除拍线(细分)/竖线/横线 */
+  const eraseAt = (x: number, y: number): void => {
+    if (!score) return
+    const tol = 20 / scale
+    // 1) 拍线(拍号细分开启时)
+    if (beatSubdivision) {
+      const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
+      let best: { n: number; i: number; d: number } | null = null
+      for (const m of measuresList) {
+        if (y < m.top || y > m.bottom) continue
+        const ratios = beatRatiosFor(beatRatiosByMeasure, m.n, beatsPerMeasure)
+        for (let i = 0; i < ratios.length; i++) {
+          const lx = m.x0 + (m.x1 - m.x0) * ratios[i]
+          const d = Math.abs(lx - x)
+          if (d < tol && (best === null || d < best.d)) best = { n: m.n, i, d }
+        }
+      }
+      if (best) {
+        removeBeatLine(best.n, best.i)
+        return
+      }
+    }
+    // 2) 竖线 / 横线
+    const hv = nearestHLine(hLines, y, tol)
+    const vv = nearestVLine(vLines, hLines, x, y, score.height, tol)
+    if (vv && (hv === null || Math.abs(vv.x - x) <= Math.abs(sortedLines(hLines)[hv] - y))) {
+      removeLine({ type: 'v', id: vv.id })
+    } else if (hv !== null) {
+      removeLine({ type: 'h', id: String(hv) })
+    }
   }
 
   // ---------- 虚拟预览线(自动吸附可开关) ----------

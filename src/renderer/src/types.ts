@@ -19,7 +19,7 @@ export interface VLine {
   kind: 'full' | 'measure'
 }
 
-export type Tool = 'pan' | 'hline' | 'vline' | 'select'
+export type Tool = 'eraser' | 'hline' | 'vline' | 'select'
 
 export interface Selected {
   type: 'h' | 'v'

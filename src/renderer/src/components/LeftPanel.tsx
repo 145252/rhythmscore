@@ -1,14 +1,14 @@
 import React from 'react'
-import { AlignVerticalJustifyCenter, Hand, Minus, MousePointer2, Trash2 } from 'lucide-react'
+import { AlignVerticalJustifyCenter, Eraser, Minus, MousePointer2, Trash2 } from 'lucide-react'
 import { useStore } from '../store'
 import AudioPanel from './AudioPanel'
 import ColorSwatches from './ColorSwatches'
 
 const TOOL_HINTS: Record<string, string> = {
   hline: '横线模式:点击每一行谱表的上下边界。横线会自动截断在左右边框竖线之间',
-  vline: '竖线模式:① 无横线时点击 = 画贯穿全图的边框线(左右各一条);② 有横线后点击 = 画行内小节线;按住 Shift 可强制画贯穿线',
+  vline: '竖线模式:① 无横线时点击 = 画贯穿全图的边框线(左右各一条);② 有横线后点击 = 画行内小节线;按住 Shift 可强制画贯穿线;③ 开启拍号细分时点击 = 画每拍分线(Shift 仍画小节线)',
   select: '选择模式:点线可拖动微调 / 点小节空白处可选中该小节 / Delete 删除 / 右键小节可改编号',
-  pan: '使用滚轮上下滚动浏览曲谱'
+  eraser: '橡皮擦:点击(或按住拖动划过)横线、竖线、每拍分线,即可擦除'
 }
 
 export default function LeftPanel(): React.JSX.Element {
@@ -30,7 +30,7 @@ export default function LeftPanel(): React.JSX.Element {
     { id: 'hline' as const, icon: <Minus size={16} />, label: '横线' },
     { id: 'vline' as const, icon: <AlignVerticalJustifyCenter size={16} />, label: '竖线' },
     { id: 'select' as const, icon: <MousePointer2 size={16} />, label: '选择' },
-    { id: 'pan' as const, icon: <Hand size={16} />, label: '浏览' }
+    { id: 'eraser' as const, icon: <Eraser size={16} />, label: '橡皮擦' }
   ]
 
   return (

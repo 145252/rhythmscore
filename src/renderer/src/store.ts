@@ -127,6 +127,7 @@ interface EditorState {
   setBeatsPerMeasure: (n: number) => void
   setBeatRatio: (measureN: number, index: number, ratio: number) => void
   addBeatLine: (measureN: number, ratio: number) => void
+  removeBeatLine: (measureN: number, index: number) => void
   resetBeatRatios: () => void
   setCursorColor: (c: string) => void
   setCursorWidth: (w: number) => void
@@ -403,6 +404,16 @@ export const useStore = create<EditorState>((set, get) => ({
       if (dedup.length === 0 || Math.abs(dedup[dedup.length - 1] - v) > 0.002) dedup.push(v)
     }
     set({ beatRatiosByMeasure: { ...useStore.getState().beatRatiosByMeasure, [measureN]: dedup } })
+  },
+  removeBeatLine: (measureN, index) => {
+    const cur = useStore.getState().beatRatiosByMeasure[measureN]
+    if (!cur) return
+    const arr = [...cur]
+    if (index >= 0 && index < arr.length) arr.splice(index, 1)
+    const next = { ...useStore.getState().beatRatiosByMeasure }
+    if (arr.length === 0) delete next[measureN]
+    else next[measureN] = arr
+    set({ beatRatiosByMeasure: next, dirty: true })
   },
   resetBeatRatios: () => set({ beatRatiosByMeasure: {} }),
 
