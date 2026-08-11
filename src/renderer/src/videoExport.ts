@@ -14,6 +14,8 @@ import { getAudio } from './audioPlayer'
 
 export type FollowMode = 'continuous' | 'jump'
 export type VideoRatio = '单行' | '9:16' | '16:9'
+/** 颜色进度遮罩范围 */
+export type TrailRange = 'measure' | 'row' | 'score'
 
 export const RATIO_SIZES: Record<VideoRatio, { w: number; h: number }> = {
   单行: { w: 1920, h: 1080 },
@@ -59,6 +61,8 @@ export interface RenderData {
   cursorTrail: boolean
   /** 颜色进度遮罩浓度 */
   cursorTrailOpacity: number
+  /** 颜色进度覆盖范围:measure=当前小节 / row=整行 / score=整个曲谱(已播放部分) */
+  cursorTrailRange: TrailRange
   /** 免费版:导出时叠加动态移动水印(专业版 false) */
   watermark: boolean
   /** 跳框模式高亮颜色 */
@@ -307,10 +311,20 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
       }
       const cursorX = bx + bw * prog
       const op = clamp(data.cursorOpacity, 0.2, 1)
-      // 颜色进度:光标走过区域覆盖同色遮罩(当前小节内,从起点到光标线)
-      if (data.cursorTrail && cursorX > bx) {
-        ctx.fillStyle = hexToRgba(data.cursorColor, clamp(data.cursorTrailOpacity, 0.02, 0.6))
-        ctx.fillRect(bx, by, cursorX - bx, bh)
+      // 颜色进度:光标走过区域覆盖同色遮罩(范围:当前小节/整行/整谱已播放部分)
+      if (data.cursorTrail) {
+        const regions = trailRegions(
+          { x0: bx, x1: bx + bw, top: by, bottom: by + bh },
+          cursorX,
+          data.cursorTrailRange,
+          tx(data.leftBorder),
+          tx(data.rightBorder),
+          rowSpans(data.hLines, data.scoreH).map((r) => ({ top: ty(r.top), bottom: ty(r.bottom) }))
+        )
+        if (regions.length > 0) {
+          ctx.fillStyle = hexToRgba(data.cursorColor, clamp(data.cursorTrailOpacity, 0.02, 0.6))
+          for (const r of regions) ctx.fillRect(r.x, r.y, r.w, r.h)
+        }
       }
       ctx.lineCap = 'round'
       // 轻光晕(弱化)
@@ -356,6 +370,45 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
     ctx.fillText('RhythmScore', 0, 0)
     ctx.restore()
   }
+}
+
+/** 行边界分段(整谱纵向按横线划成若干行):返回 [{top,bottom}] */
+export function rowSpans(hLines: number[], scoreH: number): { top: number; bottom: number }[] {
+  const ys = [...hLines].sort((a, b) => a - b)
+  const bounds = [0, ...ys, scoreH]
+  const spans: { top: number; bottom: number }[] = []
+  for (let i = 0; i < bounds.length - 1; i++) {
+    if (bounds[i + 1] - bounds[i] > 1) spans.push({ top: bounds[i], bottom: bounds[i + 1] })
+  }
+  return spans
+}
+
+/** 颜色进度遮罩区域(画布坐标矩形列表;按覆盖范围:小节/整行/整谱已播放部分) */
+export function trailRegions(
+  m: { x0: number; x1: number; top: number; bottom: number },
+  cursorX: number,
+  range: TrailRange,
+  leftBorder: number,
+  rightBorder: number,
+  rows: { top: number; bottom: number }[]
+): { x: number; y: number; w: number; h: number }[] {
+  if (cursorX <= m.x0) return []
+  if (range === 'measure') {
+    return [{ x: m.x0, y: m.top, w: cursorX - m.x0, h: m.bottom - m.top }]
+  }
+  if (range === 'row') {
+    // 当前小节所在整行:行首(左边框)到光标线
+    return [{ x: leftBorder, y: m.top, w: cursorX - leftBorder, h: m.bottom - m.top }]
+  }
+  // score:上方已完整演奏的行整行覆盖 + 当前行到光标
+  const regions: { x: number; y: number; w: number; h: number }[] = []
+  for (const r of rows) {
+    if (r.bottom <= m.top + 0.5) {
+      regions.push({ x: leftBorder, y: r.top, w: rightBorder - leftBorder, h: r.bottom - r.top })
+    }
+  }
+  regions.push({ x: leftBorder, y: m.top, w: cursorX - leftBorder, h: m.bottom - m.top })
+  return regions
 }
 
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {

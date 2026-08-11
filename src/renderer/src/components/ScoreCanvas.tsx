@@ -5,7 +5,7 @@ import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, an
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
-import { buildMeasures, eventAtTime, measureAtTime } from '../videoExport'
+import { buildMeasures, eventAtTime, measureAtTime, rowSpans, trailRegions } from '../videoExport'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
@@ -131,7 +131,9 @@ export default function ScoreCanvas(): React.JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cursorLineRef = useRef<SVGLineElement>(null)
   const cursorGlowRef = useRef<SVGLineElement>(null)
-  const trailRectRef = useRef<SVGRectElement>(null)
+  const trailRectsRef = useRef<(SVGRectElement | null)[]>([])
+  /** 颜色进度遮罩最多支持的行数(整谱模式每行一个矩形,一般不会超过) */
+  const MAX_TRAIL_RECTS = 24
   const [drag, setDrag] = useState<DragState>(null)
   const [dragOver, setDragOver] = useState(false)
   /** 鼠标悬停位置(图片坐标),用于虚拟预览线 */
@@ -249,7 +251,9 @@ export default function ScoreCanvas(): React.JSX.Element {
       for (const x of [cursorGlowRef.current, cursorLineRef.current]) {
         if (x) x.setAttribute('visibility', 'hidden')
       }
-      if (trailRectRef.current) trailRectRef.current.setAttribute('visibility', 'hidden')
+      for (const r of trailRectsRef.current) {
+        if (r) r.setAttribute('visibility', 'hidden')
+      }
     }
     const loop = (): void => {
       const st = useStore.getState()
@@ -287,19 +291,34 @@ export default function ScoreCanvas(): React.JSX.Element {
         el.setAttribute('y2', String(m.bottom))
         el.setAttribute('stroke-width', String(cw))
         el.setAttribute('visibility', 'visible')
-        // 颜色进度:光标走过区域覆盖同色遮罩
-        const trail = trailRectRef.current
-        if (trail) {
-          if (st.cursorTrail && cx > m.x0) {
-            trail.setAttribute('x', String(m.x0))
-            trail.setAttribute('y', String(m.top))
-            trail.setAttribute('width', String(cx - m.x0))
-            trail.setAttribute('height', String(m.bottom - m.top))
-            trail.setAttribute('fill', st.cursorColor)
-            trail.setAttribute('fill-opacity', String(clamp(st.cursorTrailOpacity, 0.02, 0.6)))
-            trail.setAttribute('visibility', 'visible')
+        // 颜色进度:光标走过区域覆盖同色遮罩(范围:当前小节/整行/整谱已播放部分)
+        const fullXs = st.vLines.filter((v) => v.kind === 'full').map((v) => v.x)
+        const leftB = fullXs.length ? Math.min(...fullXs) : 0
+        const rightB = fullXs.length ? Math.max(...fullXs) : st.score.width
+        const regions = st.cursorTrail
+          ? trailRegions(
+              { x0: m.x0, x1: m.x1, top: m.top, bottom: m.bottom },
+              cx,
+              st.cursorTrailRange,
+              leftB,
+              rightB,
+              rowSpans(st.hLines, st.score.height).map((r) => ({ top: r.top, bottom: r.bottom }))
+            )
+          : []
+        for (let i = 0; i < MAX_TRAIL_RECTS; i++) {
+          const rect = trailRectsRef.current[i]
+          if (!rect) continue
+          const reg = regions[i]
+          if (reg) {
+            rect.setAttribute('x', String(reg.x))
+            rect.setAttribute('y', String(reg.y))
+            rect.setAttribute('width', String(reg.w))
+            rect.setAttribute('height', String(reg.h))
+            rect.setAttribute('fill', st.cursorColor)
+            rect.setAttribute('fill-opacity', String(clamp(st.cursorTrailOpacity, 0.02, 0.6)))
+            rect.setAttribute('visibility', 'visible')
           } else {
-            trail.setAttribute('visibility', 'hidden')
+            rect.setAttribute('visibility', 'hidden')
           }
         }
       } else {
@@ -900,18 +919,23 @@ export default function ScoreCanvas(): React.JSX.Element {
                     />
                   </g>
                 )}
-                {/* 颜色进度遮罩(光标走过区域,同色覆盖) */}
-                <rect
-                  ref={trailRectRef}
-                  x="0"
-                  y="0"
-                  width="0"
-                  height="0"
-                  fill={cursorColor}
-                  fillOpacity={cursorTrailOpacity}
-                  visibility="hidden"
-                  pointerEvents="none"
-                />
+                {/* 颜色进度遮罩(光标走过区域,同色覆盖;多矩形支持整行/整谱模式) */}
+                {Array.from({ length: MAX_TRAIL_RECTS }).map((_, i) => (
+                  <rect
+                    key={i}
+                    ref={(el) => {
+                      trailRectsRef.current[i] = el
+                    }}
+                    x="0"
+                    y="0"
+                    width="0"
+                    height="0"
+                    fill={cursorColor}
+                    fillOpacity={cursorTrailOpacity}
+                    visibility="hidden"
+                    pointerEvents="none"
+                  />
+                ))}
                 {/* 播放预览光标线(rAF 实时更新:轻光晕 + 纯色主线,浓度由 opacity 控制) */}
                 <line
                   ref={cursorGlowRef}

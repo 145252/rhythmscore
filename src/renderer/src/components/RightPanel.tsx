@@ -30,11 +30,13 @@ export default function RightPanel(): React.JSX.Element {
   const cursorOpacity = useStore((s) => s.cursorOpacity)
   const cursorTrail = useStore((s) => s.cursorTrail)
   const cursorTrailOpacity = useStore((s) => s.cursorTrailOpacity)
+  const cursorTrailRange = useStore((s) => s.cursorTrailRange)
   const setCursorColor = useStore((s) => s.setCursorColor)
   const setCursorWidth = useStore((s) => s.setCursorWidth)
   const setCursorOpacity = useStore((s) => s.setCursorOpacity)
   const setCursorTrail = useStore((s) => s.setCursorTrail)
   const setCursorTrailOpacity = useStore((s) => s.setCursorTrailOpacity)
+  const setCursorTrailRange = useStore((s) => s.setCursorTrailRange)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
   const jumpOpacity = useStore((s) => s.jumpOpacity)
@@ -104,6 +106,7 @@ export default function RightPanel(): React.JSX.Element {
           cursorOpacity,
           cursorTrail,
           cursorTrailOpacity,
+          cursorTrailRange,
           jumpColor,
           jumpOpacity,
           nextColor,
@@ -219,18 +222,38 @@ export default function RightPanel(): React.JSX.Element {
               颜色进度(光标走过区域覆盖同色)
             </label>
             {cursorTrail && (
-              <div className="cursor-width-row">
-                <span>进度浓度</span>
-                <input
-                  type="range"
-                  min={5}
-                  max={60}
-                  value={Math.round(cursorTrailOpacity * 100)}
-                  onChange={(e) => setCursorTrailOpacity(Number(e.target.value) / 100)}
-                  disabled={busy}
-                />
-                <span className="lv">{Math.round(cursorTrailOpacity * 100)}%</span>
-              </div>
+              <>
+                <div className="cursor-width-row">
+                  <span>进度浓度</span>
+                  <input
+                    type="range"
+                    min={5}
+                    max={60}
+                    value={Math.round(cursorTrailOpacity * 100)}
+                    onChange={(e) => setCursorTrailOpacity(Number(e.target.value) / 100)}
+                    disabled={busy}
+                  />
+                  <span className="lv">{Math.round(cursorTrailOpacity * 100)}%</span>
+                </div>
+                <div className="trail-range-row">
+                  {(
+                    [
+                      ['measure', '当前小节'],
+                      ['row', '整行'],
+                      ['score', '整谱']
+                    ] as const
+                  ).map(([v, label]) => (
+                    <button
+                      key={v}
+                      className={`btn mode ${cursorTrailRange === v ? 'active' : ''}`}
+                      onClick={() => setCursorTrailRange(v)}
+                      disabled={busy}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
             <ColorSwatches value={cursorColor} onChange={setCursorColor} disabled={busy} />
           </>
