@@ -186,7 +186,7 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
 
   // ---- 曲谱 ----
   ctx.imageSmoothingEnabled = true
-  ctx.imageSmoothingQuality = 'high'
+  ctx.imageSmoothingQuality = 'medium'
   if (data.pre) {
     // 预渲染整图:与画布同尺度,直接裁剪绘制
     ctx.drawImage(data.pre, offsetX, offsetY, W, H, 0, 0, W, H)
@@ -409,8 +409,8 @@ export async function recordVideo(
   const audio = getAudio()
   audio.currentTime = 0
 
-  // 60fps 捕获,提高光标跟随流畅度
-  const videoStream = canvas.captureStream(60)
+  // 30fps 捕获:高清全量绘制下比 60fps 稳定得多,光标不掉帧(视频标准帧率,视觉依然平滑)
+  const videoStream = canvas.captureStream(30)
   const withCapture = audio as HTMLAudioElement & { captureStream?: () => MediaStream }
   const audioStream = typeof withCapture.captureStream === 'function' ? withCapture.captureStream() : null
   const stream = new MediaStream([
@@ -422,7 +422,7 @@ export async function recordVideo(
     MediaRecorder.isTypeSupported(m)
   )
   if (!mime) throw new Error('当前环境不支持 webm 录制')
-  // 高码率保证清晰度(1080p 60fps 静态画面)
+  // 码率保证清晰度(1080p 30fps 静态画面)
   const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 })
   const chunks: Blob[] = []
   rec.ondataavailable = (e) => {
@@ -439,8 +439,8 @@ export async function recordVideo(
     let last = 0
     const loop = (ts: number): void => {
       const t = audio.currentTime
-      if (ts - last >= 16) {
-        // 60fps 渲染
+      if (ts - last >= 33) {
+        // 30fps 渲染(与录制帧率一致,稳定不掉帧)
         last = ts
         renderFrame(ctx, W, H, t, data)
       }
