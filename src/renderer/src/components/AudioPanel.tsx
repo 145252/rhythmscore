@@ -67,7 +67,7 @@ export default function AudioPanel(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying])
 
-  // 对点模式:回车 = 给当前选中的小节追加一个时间点(反复段落可多点几次)
+  // 对点模式:回车 = 给当前选中的小节追加一个时间点,并自动跳到下一小节(连续对点)
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.key !== 'Enter') return
@@ -81,6 +81,9 @@ export default function AudioPanel(): React.JSX.Element {
       const n = st.currentMeasure ?? 1
       const now = getAudio().currentTime
       st.addMarkEvent(Math.min(Math.max(n, 1), total), now)
+      // 打点后自动选中下一小节(高亮跟随),方便连续回车对点
+      const next = Math.min(n + 1, total)
+      st.selectMeasure(next)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)

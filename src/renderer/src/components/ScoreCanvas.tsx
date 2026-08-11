@@ -564,7 +564,32 @@ export default function ScoreCanvas(): React.JSX.Element {
       } else {
         // 空白处:对点模式下 = 打点(可重复=反复);否则选中小节(已对点则跳转音频)
         setSelected(null)
-        const n = measureNumberAt(x, y)
+        let n = measureNumberAt(x, y)
+        const st0 = useStore.getState()
+        if (n === null && st0.marking && score) {
+          // 对点容错:点击落在该行内但未精确命中区间(小节边界/间隙)→ 归入最近的小节
+          const row = rowAt(hLines, y, score.height)
+          const fullXs = vLines.filter((v) => v.kind === 'full').map((v) => v.x)
+          const leftB = fullXs.length ? Math.min(...fullXs) : 0
+          const rightB = fullXs.length ? Math.max(...fullXs) : score.width
+          const rowXs = (r: number): number[] =>
+            [...new Set([leftB, rightB, ...vLines.filter((v) => v.kind === 'measure' && v.row === r).map((v) => v.x)])].sort(
+              (a, b) => a - b
+            )
+          let base = 0
+          for (let r = 0; r < row; r++) base += Math.max(rowXs(r).length - 1, 0)
+          const xs = rowXs(row)
+          let bestIdx = -1
+          let bestD = Infinity
+          for (let i = 0; i < xs.length - 1; i++) {
+            const d = x < xs[i] ? xs[i] - x : x > xs[i + 1] ? x - xs[i + 1] : 0
+            if (d < bestD) {
+              bestD = d
+              bestIdx = i
+            }
+          }
+          if (bestIdx >= 0) n = base + bestIdx + 1
+        }
         if (n !== null) {
           selectMeasure(n)
           const st = useStore.getState()
@@ -945,7 +970,7 @@ export default function ScoreCanvas(): React.JSX.Element {
                         rx={3 * k}
                       />
                     ))}
-                {/* 对点预选框:下一个待打点的小节(橙色虚线) */}
+                {/* 对点预选框:下一个待打点的小节(橙色虚线,加粗高亮) */}
                 {marking &&
                   markingNext !== null &&
                   measures
@@ -957,11 +982,11 @@ export default function ScoreCanvas(): React.JSX.Element {
                         y={m.top}
                         width={m.x1 - m.x0}
                         height={m.bottom - m.top}
-                        fill="rgba(186,117,23,0.08)"
-                        stroke="rgba(186,117,23,0.85)"
-                        strokeWidth={1.5 * k}
+                        fill="rgba(186,117,23,0.18)"
+                        stroke="rgba(255,170,40,0.95)"
+                        strokeWidth={2.4 * k}
                         strokeDasharray={`${8 * k} ${6 * k}`}
-                        rx={2 * k}
+                        rx={3 * k}
                       />
                     ))}
                 {/* 识别出的印刷小节线(淡绿虚线,吸附开启时显示吸附目标) */}
