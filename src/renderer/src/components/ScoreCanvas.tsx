@@ -5,7 +5,7 @@ import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, an
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
-import { beatCursorRatio, beatRatiosFor, buildMeasures, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
+import { beatCursorRatio, beatRatiosFor, buildMeasures, currentBeatStart, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
@@ -137,6 +137,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cursorLineRef = useRef<SVGLineElement>(null)
   const cursorGlowRef = useRef<SVGLineElement>(null)
+  const cursorBallRef = useRef<SVGCircleElement>(null)
   const trailRectsRef = useRef<(SVGRectElement | null)[]>([])
   /** 颜色进度遮罩最多支持的行数(整谱模式每行一个矩形,一般不会超过) */
   const MAX_TRAIL_RECTS = 24
@@ -254,7 +255,7 @@ export default function ScoreCanvas(): React.JSX.Element {
     const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
     let raf = 0
     const hideAll = (): void => {
-      for (const x of [cursorGlowRef.current, cursorLineRef.current]) {
+      for (const x of [cursorGlowRef.current, cursorLineRef.current, cursorBallRef.current]) {
         if (x) x.setAttribute('visibility', 'hidden')
       }
       for (const r of trailRectsRef.current) {
@@ -303,6 +304,21 @@ export default function ScoreCanvas(): React.JSX.Element {
         el.setAttribute('y2', String(m.bottom))
         el.setAttribute('stroke-width', String(cw))
         el.setAttribute('visibility', 'visible')
+        // 拍点小球:分拍时落在当前拍起点(每拍跳动),无分拍跟随光标
+        const ball = cursorBallRef.current
+        if (ball) {
+          const bs =
+            st.beatSubdivision && curRatios.length >= 1
+              ? currentBeatStart(prog, curRatios.length + 1, curRatios)
+              : null
+          const ballX = bs !== null ? m.x0 + (m.x1 - m.x0) * bs : cx
+          const rad = Math.max(4.5, cw * 0.9)
+          ball.setAttribute('cx', String(ballX))
+          ball.setAttribute('cy', String(m.top - rad * 0.55))
+          ball.setAttribute('r', String(rad))
+          ball.setAttribute('fill', st.cursorColor)
+          ball.setAttribute('visibility', 'visible')
+        }
         // 颜色进度:光标走过区域覆盖同色遮罩(范围:当前小节/整行/整谱已播放部分)
         const fullXs = st.vLines.filter((v) => v.kind === 'full').map((v) => v.x)
         const leftB = fullXs.length ? Math.min(...fullXs) : 0
@@ -1017,6 +1033,18 @@ export default function ScoreCanvas(): React.JSX.Element {
                     pointerEvents="none"
                   />
                 ))}
+                {/* 拍点小球(光标上方,跟随每拍起点跳动) */}
+                <circle
+                  ref={cursorBallRef}
+                  cx="0"
+                  cy="0"
+                  r="6"
+                  fill={cursorColor}
+                  stroke="rgba(255,255,255,0.92)"
+                  strokeWidth={1.6}
+                  visibility="hidden"
+                  pointerEvents="none"
+                />
                 {/* 播放预览光标线(rAF 实时更新:轻光晕 + 纯色主线,浓度由 opacity 控制) */}
                 <line
                   ref={cursorGlowRef}

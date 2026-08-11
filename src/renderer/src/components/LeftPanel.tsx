@@ -52,6 +52,28 @@ export default function LeftPanel(): React.JSX.Element {
           ))}
         </div>
 
+        {/* 拍号细分:放在线宽上方,与横线/竖线工具联动(开启后竖线=每拍分线) */}
+        <p className="label" style={{ marginTop: 12 }}>
+          拍号细分
+        </p>
+        <label className="marking-toggle">
+          <span>开启(画竖线 = 每拍分线)</span>
+          <input type="checkbox" checked={beatSubdivision} onChange={(e) => setBeatSubdivision(e.target.checked)} />
+          <span className="toggle-track">
+            <span className="toggle-thumb" />
+          </span>
+        </label>
+        {beatSubdivision && (
+          <>
+            <p className="hint">
+              开启后,在曲谱上画竖线 = 在该小节内添加一拍分线(画哪放哪);按 Shift 再画仍是小节线。「选择」工具可拖动拍线微调;光标线将按每拍实际距离走。
+            </p>
+            <button className="btn subtle" onClick={resetBeatRatios}>
+              清空全部拍线
+            </button>
+          </>
+        )}
+
         <div className="line-width-row">
           <span>线宽</span>
           <input
@@ -85,28 +107,6 @@ export default function LeftPanel(): React.JSX.Element {
         </div>
 
         <p className="hint">{TOOL_HINTS[tool]}</p>
-
-        {/* 拍号细分:每小节内按拍标线,光标按实际拍距走 */}
-        <p className="label" style={{ marginTop: 14 }}>
-          拍号细分
-        </p>
-        <label className="marking-toggle">
-          <span>开启(画竖线 = 每拍分线)</span>
-          <input type="checkbox" checked={beatSubdivision} onChange={(e) => setBeatSubdivision(e.target.checked)} />
-          <span className="toggle-track">
-            <span className="toggle-thumb" />
-          </span>
-        </label>
-        {beatSubdivision && (
-          <>
-            <p className="hint">
-              开启后,在曲谱上画竖线 = 在该小节内添加一拍分线(画哪放哪);按 Shift 再画仍是小节线。「选择」工具可拖动拍线微调;光标线将按每拍实际距离走。
-            </p>
-            <button className="btn subtle" onClick={resetBeatRatios}>
-              清空全部拍线
-            </button>
-          </>
-        )}
       </div>
 
       <div className="section-gap" />

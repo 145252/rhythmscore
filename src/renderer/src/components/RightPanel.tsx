@@ -31,6 +31,8 @@ export default function RightPanel(): React.JSX.Element {
   const cursorTrail = useStore((s) => s.cursorTrail)
   const cursorTrailOpacity = useStore((s) => s.cursorTrailOpacity)
   const cursorTrailRange = useStore((s) => s.cursorTrailRange)
+  const cursorBall = useStore((s) => s.cursorBall)
+  const setCursorBall = useStore((s) => s.setCursorBall)
   const setCursorColor = useStore((s) => s.setCursorColor)
   const setCursorWidth = useStore((s) => s.setCursorWidth)
   const setCursorOpacity = useStore((s) => s.setCursorOpacity)
@@ -107,6 +109,7 @@ export default function RightPanel(): React.JSX.Element {
           cursorTrail,
           cursorTrailOpacity,
           cursorTrailRange,
+          cursorBall: st.cursorBall,
           beatSubdivision: st.beatSubdivision,
           beatsPerMeasure: st.beatsPerMeasure,
           beatRatiosByMeasure: st.beatRatiosByMeasure,
@@ -223,6 +226,15 @@ export default function RightPanel(): React.JSX.Element {
                 disabled={busy}
               />
               颜色进度(光标走过区域覆盖同色)
+            </label>
+            <label className="split-opt">
+              <input
+                type="checkbox"
+                checked={cursorBall}
+                onChange={(e) => setCursorBall(e.target.checked)}
+                disabled={busy}
+              />
+              拍点小球(光标上方跟随每拍起点跳动)
             </label>
             {cursorTrail && (
               <>

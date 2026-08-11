@@ -67,6 +67,8 @@ export interface RenderData {
   beatSubdivision: boolean
   beatsPerMeasure: number
   beatRatiosByMeasure: Record<number, number[]>
+  /** 拍点小球:光标线上方跟随每拍起点跳动 */
+  cursorBall: boolean
   /** 免费版:导出时叠加动态移动水印(专业版 false) */
   watermark: boolean
   /** 跳框模式高亮颜色 */
@@ -130,6 +132,16 @@ export function defaultBeatRatios(count: number): number[] {
 /** 取某小节的拍线比例(缺失=无拍线) */
 export function beatRatiosFor(byMeasure: Record<number, number[]>, n: number, _beatsPerMeasure: number): number[] {
   return byMeasure[n] ?? []
+}
+
+/** 当前拍起点比例(分拍时返回该拍起点位置,无分拍返回 null) */
+export function currentBeatStart(prog: number, beatsPerMeasure: number, beatRatios: number[]): number | null {
+  const n = beatsPerMeasure
+  if (n < 2 || beatRatios.length !== n - 1) return null
+  const sorted = [0, ...beatRatios, 1].slice().sort((a, b) => a - b)
+  const p = clamp(prog, 0, 0.999999)
+  const beat = Math.min(Math.floor(p * n), n - 1)
+  return sorted[beat]
 }
 
 /**
@@ -367,6 +379,23 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         }
       }
       ctx.lineCap = 'round'
+      // 拍点小球:光标线上方,分拍时落在当前拍起点(每拍跳动),无分拍跟随光标匀速移动
+      if (data.cursorBall) {
+        const bs =
+          data.beatSubdivision && curRatios.length >= 1
+            ? currentBeatStart(prog, curRatios.length + 1, curRatios)
+            : null
+        const ballX = bs !== null ? bx + bw * bs : cursorX
+        const rad = Math.max(4.5, data.cursorWidth * 0.9)
+        const ballY = by - rad * 0.55
+        ctx.beginPath()
+        ctx.arc(ballX, ballY, rad, 0, Math.PI * 2)
+        ctx.fillStyle = hexToRgba(data.cursorColor, 0.95)
+        ctx.fill()
+        ctx.lineWidth = Math.max(1.5, rad * 0.28)
+        ctx.strokeStyle = 'rgba(255,255,255,0.92)'
+        ctx.stroke()
+      }
       // 轻光晕(弱化)
       ctx.strokeStyle = hexToRgba(data.cursorColor, 0.07 * op)
       ctx.lineWidth = data.cursorWidth * 2.2

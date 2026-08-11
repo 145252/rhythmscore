@@ -114,6 +114,9 @@ interface EditorState {
   cursorTrailOpacity: number
   /** 颜色进度覆盖范围:measure=当前小节 / row=整行 / score=整谱已播放部分 */
   cursorTrailRange: 'measure' | 'row' | 'score'
+  /** 拍点小球:光标线上方跟随每拍起点跳动 */
+  cursorBall: boolean
+  setCursorBall: (b: boolean) => void
   /** 拍号细分:开启后每个小节内按拍号生成拍线,光标按拍距走 */
   beatSubdivision: boolean
   /** 每小节拍数(拍号分子,如 4/4=4) */
@@ -193,6 +196,7 @@ export const useStore = create<EditorState>((set, get) => ({
   cursorTrail: false,
   cursorTrailOpacity: 0.3,
   cursorTrailRange: 'measure',
+  cursorBall: false,
   beatSubdivision: false,
   beatsPerMeasure: 4,
   beatRatiosByMeasure: {},
@@ -376,6 +380,7 @@ export const useStore = create<EditorState>((set, get) => ({
   setCursorTrail: (b) => set({ cursorTrail: b }),
   setCursorTrailOpacity: (o) => set({ cursorTrailOpacity: o }),
   setCursorTrailRange: (r) => set({ cursorTrailRange: r }),
+  setCursorBall: (b) => set({ cursorBall: b }),
   setBeatSubdivision: (b) => set({ beatSubdivision: b }),
   setBeatsPerMeasure: (n) => {
     const count = Math.max(2, Math.min(12, Math.round(n)))
