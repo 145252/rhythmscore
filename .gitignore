@@ -8,3 +8,5 @@ dist/
 *.tsbuildinfo
 electron.vite.config.*.mjs
 build/license_private.pem
+dist-app/
+dist-license/
