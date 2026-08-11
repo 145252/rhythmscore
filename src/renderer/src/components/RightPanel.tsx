@@ -109,7 +109,7 @@ export default function RightPanel(): React.JSX.Element {
           cursorTrailRange,
           beatSubdivision: st.beatSubdivision,
           beatsPerMeasure: st.beatsPerMeasure,
-          beatRatios: st.beatRatios,
+          beatRatiosByMeasure: st.beatRatiosByMeasure,
           jumpColor,
           jumpOpacity,
           nextColor,

@@ -5,14 +5,14 @@ import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, an
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
-import { beatCursorRatio, buildMeasures, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
+import { beatCursorRatio, beatRatiosFor, buildMeasures, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
 type DragState =
   | { kind: 'moveH'; sortedIdx: number; sy: number; origY: number }
   | { kind: 'moveV'; id: string; sx: number; origX: number }
-  | { kind: 'moveBeat'; index: number; sx: number; origRatio: number; m: { x0: number; x1: number } }
+  | { kind: 'moveBeat'; measureN: number; index: number; sx: number; origRatio: number; m: { x0: number; x1: number } }
   | null
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi)
@@ -116,8 +116,9 @@ export default function ScoreCanvas(): React.JSX.Element {
   const cursorTrail = useStore((s) => s.cursorTrail)
   const cursorTrailOpacity = useStore((s) => s.cursorTrailOpacity)
   const beatSubdivision = useStore((s) => s.beatSubdivision)
-  const beatRatios = useStore((s) => s.beatRatios)
-  const setBeatRatios = useStore((s) => s.setBeatRatios)
+  const beatsPerMeasure = useStore((s) => s.beatsPerMeasure)
+  const beatRatiosByMeasure = useStore((s) => s.beatRatiosByMeasure)
+  const setBeatRatio = useStore((s) => s.setBeatRatio)
   const markLineColor = useStore((s) => s.markLineColor)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
@@ -279,10 +280,11 @@ export default function ScoreCanvas(): React.JSX.Element {
         const start = ev.time
         const end = st.markEvents[idx + 1]?.time ?? st.audioDuration
         const prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
-        // 拍号细分开启时,光标按每拍实际拍距走
+        // 拍号细分开启时,光标按每拍实际拍距走(该小节独立拍线,缺失用等分)
+        const curRatios = st.beatSubdivision ? beatRatiosFor(st.beatRatiosByMeasure, m.n, st.beatsPerMeasure) : []
         const ratioInMeasure =
-          st.beatSubdivision && st.beatRatios.length === st.beatsPerMeasure - 1
-            ? beatCursorRatio(prog, st.beatsPerMeasure, st.beatRatios)
+          st.beatSubdivision && curRatios.length === st.beatsPerMeasure - 1
+            ? beatCursorRatio(prog, st.beatsPerMeasure, curRatios)
             : prog
         const cx = m.x0 + (m.x1 - m.x0) * ratioInMeasure
         const cw = clamp((st.cursorWidth * st.score.width) / 1920, 1, 40)
@@ -450,20 +452,24 @@ export default function ScoreCanvas(): React.JSX.Element {
     }
     if (tool === 'select') {
       const tol = 12 / scale
-      // 拍线命中(拍号细分开启时,优先于小节边界线)
-      if (beatSubdivision && beatRatios.length > 0) {
+      // 拍线命中(拍号细分开启时,优先于小节边界线;按小节独立)
+      if (beatSubdivision) {
         const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
         let bestIdx = -1
+        let bestN = -1
         let bestM: { x0: number; x1: number } | null = null
         let bestD = Infinity
         for (const m of measuresList) {
           if (y < m.top || y > m.bottom) continue
-          for (let i = 0; i < beatRatios.length; i++) {
-            const lx = m.x0 + (m.x1 - m.x0) * beatRatios[i]
+          const ratios = beatRatiosFor(beatRatiosByMeasure, m.n, beatsPerMeasure)
+          if (ratios.length === 0) continue
+          for (let i = 0; i < ratios.length; i++) {
+            const lx = m.x0 + (m.x1 - m.x0) * ratios[i]
             const d = Math.abs(lx - x)
             if (d < bestD) {
               bestD = d
               bestIdx = i
+              bestN = m.n
               bestM = { x0: m.x0, x1: m.x1 }
             }
           }
@@ -472,9 +478,10 @@ export default function ScoreCanvas(): React.JSX.Element {
           setSelected(null)
           setDrag({
             kind: 'moveBeat',
+            measureN: bestN,
             index: bestIdx,
             sx: e.clientX,
-            origRatio: beatRatios[bestIdx],
+            origRatio: beatRatiosFor(beatRatiosByMeasure, bestN, beatsPerMeasure)[bestIdx],
             m: bestM
           })
           return
@@ -520,16 +527,15 @@ export default function ScoreCanvas(): React.JSX.Element {
       } else if (drag.kind === 'moveV') {
         updateVLine(drag.id, drag.origX + (e.clientX - drag.sx) / scale)
       } else if (drag.kind === 'moveBeat') {
-        // 拍线拖动:更新全局拍线比例(钳制在相邻拍线之间,保持有序)
+        // 拍线拖动:只更新该小节第 index 条拍线(钳制在相邻拍线之间,保持有序)
         const m = drag.m
+        const curRatios = beatRatiosFor(beatRatiosByMeasure, drag.measureN, beatsPerMeasure)
         const newX = m.x0 + (m.x1 - m.x0) * drag.origRatio + (e.clientX - drag.sx) / scale
         let r = (newX - m.x0) / (m.x1 - m.x0)
-        const prev = drag.index > 0 ? beatRatios[drag.index - 1] : 0
-        const next = drag.index < beatRatios.length - 1 ? beatRatios[drag.index + 1] : 1
+        const prev = drag.index > 0 ? curRatios[drag.index - 1] : 0
+        const next = drag.index < curRatios.length - 1 ? curRatios[drag.index + 1] : 1
         r = clamp(r, prev + 0.005, next - 0.005)
-        const arr = [...beatRatios]
-        arr[drag.index] = r
-        setBeatRatios(arr)
+        setBeatRatio(drag.measureN, drag.index, r)
       }
       return
     }
@@ -708,11 +714,11 @@ export default function ScoreCanvas(): React.JSX.Element {
                     <stop offset="100%" stopColor={rgba(markLineColor, 0.1)} />
                   </linearGradient>
                 </defs>
-                {/* 拍号细分:每小节内拍线(虚线,可拖动微调;拖动命中逻辑在 onMouseDown) */}
-                {beatSubdivision && beatRatios.length > 0 && (
+                {/* 拍号细分:每小节内拍线(虚线,按小节独立;可拖动微调;拖动命中逻辑在 onMouseDown) */}
+                {beatSubdivision && (
                   <g className="beat-lines" pointerEvents="none">
                     {measures.map((m) =>
-                      beatRatios.map((r, i) => {
+                      beatRatiosFor(beatRatiosByMeasure, m.n, beatsPerMeasure).map((r, i) => {
                         const lx = m.x0 + (m.x1 - m.x0) * r
                         return (
                           <line

@@ -118,11 +118,11 @@ interface EditorState {
   beatSubdivision: boolean
   /** 每小节拍数(拍号分子,如 4/4=4) */
   beatsPerMeasure: number
-  /** 拍线位置比例(0-1,长度=拍数-1,默认等分;可手动拖动微调) */
-  beatRatios: number[]
+  /** 每小节独立的拍线位置比例(0-1,长度=拍数-1;缺失的小节用等分) */
+  beatRatiosByMeasure: Record<number, number[]>
   setBeatSubdivision: (b: boolean) => void
   setBeatsPerMeasure: (n: number) => void
-  setBeatRatios: (r: number[]) => void
+  setBeatRatio: (measureN: number, index: number, ratio: number) => void
   resetBeatRatios: () => void
   setCursorColor: (c: string) => void
   setCursorWidth: (w: number) => void
@@ -194,7 +194,7 @@ export const useStore = create<EditorState>((set, get) => ({
   cursorTrailRange: 'measure',
   beatSubdivision: false,
   beatsPerMeasure: 4,
-  beatRatios: [0.25, 0.5, 0.75],
+  beatRatiosByMeasure: {},
 
   videoMode: 'continuous',
   jumpColor: '#E24B4A',
@@ -378,17 +378,21 @@ export const useStore = create<EditorState>((set, get) => ({
   setBeatSubdivision: (b) => set({ beatSubdivision: b }),
   setBeatsPerMeasure: (n) => {
     const count = Math.max(2, Math.min(12, Math.round(n)))
-    const ratios: number[] = []
-    for (let i = 1; i < count; i++) ratios.push(i / count)
-    set({ beatsPerMeasure: count, beatRatios: ratios })
+    // 改拍号后所有小节重置为等分(清空独立微调)
+    set({ beatsPerMeasure: count, beatRatiosByMeasure: {} })
   },
-  setBeatRatios: (r) => set({ beatRatios: r }),
-  resetBeatRatios: () => {
-    const count = useStore.getState().beatsPerMeasure
-    const ratios: number[] = []
-    for (let i = 1; i < count; i++) ratios.push(i / count)
-    set({ beatRatios: ratios })
+  setBeatRatio: (measureN, index, ratio) => {
+    const cur = useStore.getState().beatRatiosByMeasure[measureN]
+    const arr = cur ? [...cur] : (() => {
+      const count = useStore.getState().beatsPerMeasure
+      const ratios: number[] = []
+      for (let i = 1; i < count; i++) ratios.push(i / count)
+      return ratios
+    })()
+    if (index >= 0 && index < arr.length) arr[index] = ratio
+    set({ beatRatiosByMeasure: { ...useStore.getState().beatRatiosByMeasure, [measureN]: arr } })
   },
+  resetBeatRatios: () => set({ beatRatiosByMeasure: {} }),
 
   setVideoMode: (m) => set({ videoMode: m }),
   setJumpColor: (c) => set({ jumpColor: c }),
@@ -409,7 +413,8 @@ export const useStore = create<EditorState>((set, get) => ({
       measureLabel: Object.keys(s.measureLabel).length ? s.measureLabel : undefined,
       beatSubdivision: s.beatSubdivision ? true : undefined,
       beatsPerMeasure: s.beatSubdivision ? s.beatsPerMeasure : undefined,
-      beatRatios: s.beatSubdivision && s.beatRatios.length ? s.beatRatios : undefined,
+      beatRatiosByMeasure:
+        s.beatSubdivision && Object.keys(s.beatRatiosByMeasure).length ? s.beatRatiosByMeasure : undefined,
       audio:
         s.audioDataUrl && s.audioName
           ? { name: s.audioName, dataUrl: s.audioDataUrl }
@@ -433,15 +438,7 @@ export const useStore = create<EditorState>((set, get) => ({
       measureLabel: p.measureLabel ?? {},
       beatSubdivision: p.beatSubdivision ?? false,
       beatsPerMeasure: p.beatsPerMeasure ?? 4,
-      beatRatios:
-        p.beatRatios && p.beatRatios.length
-          ? p.beatRatios
-          : (() => {
-              const count = p.beatsPerMeasure ?? 4
-              const ratios: number[] = []
-              for (let i = 1; i < count; i++) ratios.push(i / count)
-              return ratios
-            })(),
+      beatRatiosByMeasure: p.beatRatiosByMeasure ?? {},
       // 恢复音频(打开后自动加载,无需重新导入)
       audioName: p.audio?.name ?? null,
       audioDataUrl: p.audio?.dataUrl ?? null,
@@ -478,6 +475,6 @@ export const useStore = create<EditorState>((set, get) => ({
       markingNext: null,
       beatSubdivision: false,
       beatsPerMeasure: 4,
-      beatRatios: [0.25, 0.5, 0.75]
+      beatRatiosByMeasure: {}
     })
 }))

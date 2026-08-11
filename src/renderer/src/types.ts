@@ -53,10 +53,10 @@ export interface ProjectFile {
   measureTimes?: Record<number, number>
   /** 小节自定义编号(原始编号 → 显示编号) */
   measureLabel?: Record<number, number>
-  /** 拍号细分:每小节内拍线(比例 0-1,长度=拍数-1);null=未启用 */
+  /** 拍号细分:每小节内拍线(比例 0-1,按小节独立;缺失=等分);null=未启用 */
   beatSubdivision?: boolean
   beatsPerMeasure?: number
-  beatRatios?: number[]
+  beatRatiosByMeasure?: Record<number, number[]>
   /** 音频内容(随项目保存,打开后自动恢复,无需重新导入) */
   audio?: { name: string; dataUrl: string } | null
 }

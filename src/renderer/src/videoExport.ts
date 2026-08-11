@@ -66,7 +66,7 @@ export interface RenderData {
   /** 拍号细分:开启后光标按每拍实际拍距走 */
   beatSubdivision: boolean
   beatsPerMeasure: number
-  beatRatios: number[]
+  beatRatiosByMeasure: Record<number, number[]>
   /** 免费版:导出时叠加动态移动水印(专业版 false) */
   watermark: boolean
   /** 跳框模式高亮颜色 */
@@ -118,6 +118,18 @@ export function eventAtTime(t: number, events: MarkEvent[]): MarkEvent | null {
 export function measureAtTime(t: number, events: MarkEvent[]): number | null {
   const ev = eventAtTime(t, events)
   return ev !== null ? ev.n : null
+}
+
+/** 等分拍线比例(拍数 N → N-1 条) */
+export function defaultBeatRatios(count: number): number[] {
+  const ratios: number[] = []
+  for (let i = 1; i < count; i++) ratios.push(i / count)
+  return ratios
+}
+
+/** 取某小节的拍线比例(缺失用等分) */
+export function beatRatiosFor(byMeasure: Record<number, number[]>, n: number, beatsPerMeasure: number): number[] {
+  return byMeasure[n] ?? defaultBeatRatios(beatsPerMeasure)
 }
 
 /**
@@ -331,9 +343,10 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
         prog = clamp((t - start) / Math.max(end - start, 0.01), 0, 1)
       }
       // 光标在小节内的位置比例(拍号细分开启时按每拍实际拍距走)
+      const curRatios = data.beatSubdivision ? beatRatiosFor(data.beatRatiosByMeasure, curM.n, data.beatsPerMeasure) : []
       const ratioInMeasure =
-        data.beatSubdivision && data.beatRatios.length === data.beatsPerMeasure - 1
-          ? beatCursorRatio(prog, data.beatsPerMeasure, data.beatRatios)
+        data.beatSubdivision && curRatios.length === data.beatsPerMeasure - 1
+          ? beatCursorRatio(prog, data.beatsPerMeasure, curRatios)
           : prog
       const cursorX = bx + bw * ratioInMeasure
       const op = clamp(data.cursorOpacity, 0.2, 1)
