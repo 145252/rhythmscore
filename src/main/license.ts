@@ -1,6 +1,8 @@
-/* 离线授权:机器码生成 + 激活码 RSA 验证(内置公钥,无需服务器) */
+/* 离线授权:机器码生成 + 激活码 RSA 验证 + 程序完整性自检(内置公钥,无需服务器) */
 import { execSync } from 'child_process'
 import { createHash, createPublicKey, verify } from 'crypto'
+import { readFile } from 'fs/promises'
+import { join } from 'path'
 import { networkInterfaces } from 'os'
 
 /** App 内置公钥(作者用 build/license_private.pem 私钥签发激活码) */
@@ -44,6 +46,25 @@ export function verifyLicense(key: string, machine: string): boolean {
     const sig = Buffer.from(key.trim(), 'base64')
     const pub = createPublicKey(LICENSE_PUBLIC_KEY)
     return verify('sha256', Buffer.from(machine, 'utf8'), pub, sig)
+  } catch {
+    return false
+  }
+}
+
+/** 完整性自检:验签 integrity.json 并比对当前文件哈希;被篡改返回 false(拒绝启动) */
+export async function verifyIntegrity(baseDir: string): Promise<boolean> {
+  try {
+    const raw = await readFile(join(baseDir, 'integrity.json'), 'utf8')
+    const data = JSON.parse(raw) as { files: Record<string, string>; sig: string }
+    const pub = createPublicKey(LICENSE_PUBLIC_KEY)
+    if (!verify('sha256', Buffer.from(JSON.stringify(data.files)), pub, Buffer.from(data.sig, 'base64'))) {
+      return false
+    }
+    for (const [rel, h] of Object.entries(data.files)) {
+      const cur = createHash('sha256').update(await readFile(join(baseDir, rel))).digest('hex')
+      if (cur !== h) return false
+    }
+    return true
   } catch {
     return false
   }

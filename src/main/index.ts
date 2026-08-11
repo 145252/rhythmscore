@@ -3,7 +3,7 @@ import { join, basename, extname } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto'
 import { exportVideo, type SegmentSpec } from './ffmpeg'
-import { machineCode, verifyLicense } from './license'
+import { machineCode, verifyLicense, verifyIntegrity } from './license'
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL
 
@@ -119,7 +119,19 @@ function createWindow(): void {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // 打包版:启动前做完整性自检,被篡改/损坏则拒绝运行(dev 模式跳过)
+  if (!isDev) {
+    const ok = await verifyIntegrity(join(__dirname, '..'))
+    if (!ok) {
+      dialog.showErrorBox(
+        'RhythmScore 完整性校验失败',
+        '程序文件已被修改或损坏,为确保安全已拒绝启动。\n请从官方渠道重新下载最新版本。'
+      )
+      app.quit()
+      return
+    }
+  }
   buildMenu()
   createWindow()
   app.on('activate', () => {
