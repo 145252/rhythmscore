@@ -688,7 +688,21 @@ export default function ScoreCanvas(): React.JSX.Element {
     }
   }
 
-  const cursor = tool === 'select' ? 'default' : tool === 'hline' ? 'row-resize' : tool === 'vline' ? 'col-resize' : 'default'
+  // 橡皮擦光标:SVG 数据 URI(白描边+深色主体,深浅背景都可见)
+  const eraserCursor = `url("data:image/svg+xml,${encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><g stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></g><g stroke="#333333" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/></g></svg>'
+  )}") 12 12, default`
+
+  const cursor =
+    tool === 'eraser'
+      ? eraserCursor
+      : tool === 'select'
+        ? 'default'
+        : tool === 'hline'
+          ? 'row-resize'
+          : tool === 'vline'
+            ? 'col-resize'
+            : 'default'
 
   /** 确认修改编号:输入新编号,该小节及之后重新连续编号(仅显示标签,不影响对点数据) */
 
