@@ -5,7 +5,7 @@ import { nearestHLine, nearestVLine, rowAt, rowBounds, rowCount, sortedLines, an
 import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
-import { buildMeasures, eventAtTime, measureAtTime, rowSpans, trailRegions } from '../videoExport'
+import { buildMeasures, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
@@ -296,14 +296,7 @@ export default function ScoreCanvas(): React.JSX.Element {
         const leftB = fullXs.length ? Math.min(...fullXs) : 0
         const rightB = fullXs.length ? Math.max(...fullXs) : st.score.width
         const regions = st.cursorTrail
-          ? trailRegions(
-              { x0: m.x0, x1: m.x1, top: m.top, bottom: m.bottom },
-              cx,
-              st.cursorTrailRange,
-              leftB,
-              rightB,
-              rowSpans(st.hLines, st.score.height).map((r) => ({ top: r.top, bottom: r.bottom }))
-            )
+          ? trailRegions(m, cx, st.cursorTrailRange, leftB, rightB, measuresList)
           : []
         for (let i = 0; i < MAX_TRAIL_RECTS; i++) {
           const rect = trailRectsRef.current[i]

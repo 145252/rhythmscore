@@ -313,17 +313,18 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
       const op = clamp(data.cursorOpacity, 0.2, 1)
       // 颜色进度:光标走过区域覆盖同色遮罩(范围:当前小节/整行/整谱已播放部分)
       if (data.cursorTrail) {
+        const cursorScoreX = curM.x0 + (curM.x1 - curM.x0) * prog
         const regions = trailRegions(
-          { x0: bx, x1: bx + bw, top: by, bottom: by + bh },
-          cursorX,
+          curM,
+          cursorScoreX,
           data.cursorTrailRange,
-          tx(data.leftBorder),
-          tx(data.rightBorder),
-          rowSpans(data.hLines, data.scoreH).map((r) => ({ top: ty(r.top), bottom: ty(r.bottom) }))
+          data.leftBorder,
+          data.rightBorder,
+          data.measures
         )
         if (regions.length > 0) {
           ctx.fillStyle = hexToRgba(data.cursorColor, clamp(data.cursorTrailOpacity, 0.02, 0.6))
-          for (const r of regions) ctx.fillRect(r.x, r.y, r.w, r.h)
+          for (const r of regions) ctx.fillRect(tx(r.x), ty(r.y), r.w * scale, r.h * scale)
         }
       }
       ctx.lineCap = 'round'
@@ -385,12 +386,12 @@ export function rowSpans(hLines: number[], scoreH: number): { top: number; botto
 
 /** 颜色进度遮罩区域(画布坐标矩形列表;按覆盖范围:小节/整行/整谱已播放部分) */
 export function trailRegions(
-  m: { x0: number; x1: number; top: number; bottom: number },
+  m: { x0: number; x1: number; top: number; bottom: number; n: number },
   cursorX: number,
   range: TrailRange,
   leftBorder: number,
   rightBorder: number,
-  rows: { top: number; bottom: number }[]
+  measures: { n: number; x0: number; x1: number; top: number; bottom: number }[]
 ): { x: number; y: number; w: number; h: number }[] {
   if (cursorX <= m.x0) return []
   if (range === 'measure') {
@@ -400,14 +401,13 @@ export function trailRegions(
     // 当前小节所在整行:行首(左边框)到光标线
     return [{ x: leftBorder, y: m.top, w: cursorX - leftBorder, h: m.bottom - m.top }]
   }
-  // score:上方已完整演奏的行整行覆盖 + 当前行到光标
+  // score:已完整演奏的小节逐个填满自身矩形(空拍/空白跳过)+ 当前小节填到光标
   const regions: { x: number; y: number; w: number; h: number }[] = []
-  for (const r of rows) {
-    if (r.bottom <= m.top + 0.5) {
-      regions.push({ x: leftBorder, y: r.top, w: rightBorder - leftBorder, h: r.bottom - r.top })
-    }
+  for (const mm of measures) {
+    if (mm.n >= m.n) break
+    regions.push({ x: mm.x0, y: mm.top, w: mm.x1 - mm.x0, h: mm.bottom - mm.top })
   }
-  regions.push({ x: leftBorder, y: m.top, w: cursorX - leftBorder, h: m.bottom - m.top })
+  regions.push({ x: m.x0, y: m.top, w: cursorX - m.x0, h: m.bottom - m.top })
   return regions
 }
 
