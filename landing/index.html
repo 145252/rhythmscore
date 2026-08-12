@@ -27,11 +27,11 @@
       radial-gradient(560px 420px at 80% 55%, rgba(40,200,190,.12), transparent 60%),
       linear-gradient(160deg,#0b0f22 0%,#121428 45%,#0e1226 100%);
   }
-  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 28px}
 
   /* 导航 */
   nav{
-    position:sticky;top:14px;z-index:50;max-width:1180px;margin:14px auto 0;
+    position:sticky;top:14px;z-index:50;max-width:1200px;margin:14px auto 0;
     display:flex;align-items:center;gap:14px;padding:10px 22px;border-radius:18px;
     background:rgba(255,255,255,.06);backdrop-filter:blur(24px) saturate(1.6);
     border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 34px rgba(0,0,0,.35);
@@ -53,74 +53,48 @@
   }
   .cta:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(90,120,240,.5)}
 
-  /* Hero */
-  header{text-align:center;padding:110px 0 70px}
-  .tag{
+  /* Hero 重做:左文左+右真实截图 */
+  .hero{display:grid;grid-template-columns:1fr 1.2fr;gap:60px;align-items:center;padding:80px 0 60px}
+  .hero-tag{
     display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;font-size:12.5px;color:#cfe4ff;
-    background:rgba(75,152,231,.14);border:1px solid rgba(75,152,231,.35);margin-bottom:26px;
+    background:rgba(75,152,231,.14);border:1px solid rgba(75,152,231,.35);margin-bottom:24px;
   }
-  .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:#4be08c;box-shadow:0 0 10px #4be08c}
+  .hero-tag::before{content:"";width:7px;height:7px;border-radius:50%;background:#4be08c;box-shadow:0 0 10px #4be08c}
   h1{
-    font-size:clamp(40px,7vw,72px);font-weight:800;letter-spacing:-1px;line-height:1.12;
+    font-size:clamp(40px,5.5vw,68px);font-weight:800;letter-spacing:-1px;line-height:1.1;
     background:linear-gradient(120deg,#fff 20%,#9cc8ff 55%,#b9a8ff 90%);
     -webkit-background-clip:text;background-clip:text;color:transparent;
   }
-  .sub{max-width:680px;margin:22px auto 0;font-size:17px;color:var(--ink2)}
-  .sub b{color:#fff;font-weight:600}
-  .hero-cta{margin-top:36px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .hero-sub{font-size:17px;color:var(--ink2);margin:22px 0 0;max-width:520px}
+  .hero-sub b{color:#fff;font-weight:600}
+  .hero-cta{margin-top:32px;display:flex;gap:14px;flex-wrap:wrap}
   .cta.ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);box-shadow:none;color:var(--ink)}
   .cta.ghost:hover{background:rgba(255,255,255,.12)}
+  .hero-stats{margin-top:42px;display:flex;gap:36px;color:var(--ink3);font-size:13px}
+  .hero-stats b{color:#fff;font-size:24px;font-weight:700;display:block;letter-spacing:-.5px}
 
-  /* 界面 mockup */
-  .mock{
-    margin:60px auto 0;max-width:1060px;border-radius:20px;padding:14px;
-    background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.03));
-    border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(20px);
-    box-shadow:0 40px 90px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);
+  /* 真实截图大图:液态玻璃框 + 阴影 */
+  .hero-shot{
+    position:relative;border-radius:18px;overflow:hidden;
+    background:linear-gradient(160deg,rgba(255,255,255,.10),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.18);
+    box-shadow:0 40px 90px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.18);
   }
-  .mock-bar{display:flex;gap:7px;padding:4px 6px 12px}
-  .mock-bar i{width:11px;height:11px;border-radius:50%}
-  .mock-bar i:nth-child(1){background:#ff5f57}.mock-bar i:nth-child(2){background:#febc2e}.mock-bar i:nth-child(3){background:#28c840}
-  .mock-body{display:flex;gap:10px;border-radius:14px;overflow:hidden;background:rgba(10,14,30,.6);height:440px}
-  .m-left{width:20%;padding:14px;border-right:1px solid rgba(255,255,255,.08)}
-  .m-center{flex:1;position:relative;background:
-    linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
-    background-size:26px 26px}
-  .m-right{width:22%;padding:14px;border-left:1px solid rgba(255,255,255,.08)}
-  .m-title{font-size:12px;color:#7d89ab;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-  .m-title b{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;font-size:10px;color:#cfe4ff;background:rgba(75,152,231,.25)}
-  .m-btn{height:30px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);margin-bottom:8px}
-  .m-btn.w{width:70%}.m-btn.w2{width:55%}
-  .m-colors{display:flex;gap:6px;margin:8px 0}
-  .m-colors i{width:18px;height:18px;border-radius:50%}
-  .m-colors i:nth-child(1){background:#378add}.m-colors i:nth-child(2){background:#ff4d4d}.m-colors i:nth-child(3){background:#f59e0b}
-  .m-colors i:nth-child(4){background:#22c55e}.m-colors i:nth-child(5){background:#111}
-  .m-toggle{height:22px;border-radius:11px;background:rgba(255,255,255,.14);margin-top:8px;position:relative;width:60%}
-  .m-toggle::after{content:"";position:absolute;left:60%;top:2px;width:18px;height:18px;border-radius:50%;background:#eef3ff}
-  /* 谱面 */
-  .staff{position:absolute;left:9%;right:9%;top:22%;}
-  .staff .row{position:relative;height:92px;margin-bottom:18px}
-  .staff .row::before{content:"";position:absolute;left:0;right:0;top:8px;height:34px;
-    background:repeating-linear-gradient(#dbe6ff 0 2px,transparent 2px 9px);opacity:.9;border-radius:4px}
-  .staff .row::after{content:"";position:absolute;left:0;right:0;top:56px;height:22px;
-    background:repeating-linear-gradient(#a9c0ee 0 2px,transparent 2px 8px);opacity:.4}
-  .notes{position:absolute;top:12px;display:flex;gap:34px}
-  .notes i{width:7px;height:7px;border-radius:50%;background:#fff;display:block;position:relative}
-  .notes i::after{content:"";position:absolute;left:5px;top:-9px;width:2px;height:22px;background:#fff}
-  .notes .r{background:#ff4d4d;box-shadow:0 0 12px rgba(255,77,77,.8)}
-  .notes .r::after{background:#ff4d4d}
-  .cursorline{position:absolute;top:12%;bottom:8%;width:5px;left:46%;
-    background:linear-gradient(#ff8a72,#d93a26);border-radius:3px;
-    box-shadow:0 0 14px rgba(255,90,70,.55),0 0 30px rgba(255,90,70,.3)}
-  .cursorline::before{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%);
-    width:14px;height:14px;border-radius:50%;background:#d93a26;box-shadow:0 0 14px rgba(255,90,70,.9)}
-  .m-foot{position:absolute;left:9%;right:9%;bottom:7%;height:10px;border-radius:6px;
-    background:linear-gradient(90deg,rgba(255,255,255,.25) 0 62%,rgba(255,255,255,.07) 62%)}
-  .wave{margin-top:14px;height:52px;border-radius:10px;background:
-    repeating-linear-gradient(90deg,rgba(154,163,173,.5) 0 3px,transparent 3px 9px);opacity:.5}
-  .mark{margin-top:8px;height:18px;border-radius:5px;background:rgba(255,255,255,.08);width:80%}
-  .mark span{color:#ba7517;font-size:10px;line-height:18px;padding-left:8px}
+  .hero-shot::before{
+    content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+    background:linear-gradient(120deg,rgba(255,255,255,.10) 0%,rgba(255,255,255,0) 30%);
+  }
+  .hero-shot img{width:100%;display:block}
+  .hero-shot .bar{
+    position:absolute;top:0;left:0;right:0;height:32px;display:flex;align-items:center;gap:7px;
+    padding:10px 14px;background:linear-gradient(180deg,rgba(10,14,30,.85),rgba(10,14,30,0));
+    z-index:3;
+  }
+  .hero-shot .bar i{width:10px;height:10px;border-radius:50%}
+  .hero-shot .bar i:nth-child(1){background:#ff5f57}
+  .hero-shot .bar i:nth-child(2){background:#febc2e}
+  .hero-shot .bar i:nth-child(3){background:#28c840}
+  .hero-shot .bar .ttl{margin-left:14px;font-size:11.5px;color:var(--ink2);font-weight:500}
 
   section{padding:90px 0}
   .sec-head{text-align:center;margin-bottom:54px}
@@ -156,7 +130,29 @@
   .step .arr{position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:#5a6bff;font-size:18px}
   .step:last-child .arr{display:none}
 
-  /* 亮点双栏 */
+  /* 界面展示区:真实截图横排 */
+  .showcase{display:grid;grid-template-columns:1.4fr 1fr;gap:24px}
+  .showcase .shot{
+    position:relative;border-radius:18px;overflow:hidden;
+    background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 24px 60px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.14);
+  }
+  .showcase .shot img{width:100%;display:block}
+  .showcase .shot .label{position:absolute;left:14px;bottom:14px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;
+    background:linear-gradient(135deg,rgba(75,152,231,.85),rgba(123,92,240,.85));backdrop-filter:blur(10px)}
+  .showcase-row{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+  .showcase-row .shot{
+    position:relative;border-radius:18px;overflow:hidden;
+    background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.14);
+    box-shadow:0 24px 60px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.14);
+  }
+  .showcase-row .shot img{width:100%;display:block}
+  .showcase-row .shot .label{position:absolute;left:14px;bottom:14px;padding:6px 12px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;
+    background:linear-gradient(135deg,rgba(75,152,231,.85),rgba(123,92,240,.85));backdrop-filter:blur(10px)}
+
+  /* 亮点 */
   .split{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center}
   .split h3{font-size:26px;font-weight:700;margin-bottom:16px}
   .split p{color:var(--ink2);font-size:15px;margin-bottom:14px}
@@ -165,23 +161,6 @@
     background:rgba(75,231,140,.16);border:1px solid rgba(75,231,140,.4);color:#4be08c}
   .feat b{display:block;font-size:15px;margin-bottom:2px}
   .feat span{color:var(--ink2);font-size:13.5px}
-
-  /* 手机卡片 */
-  .phone{
-    width:230px;height:470px;margin:0 auto;border-radius:34px;padding:10px;position:relative;
-    background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));
-    border:1px solid rgba(255,255,255,.2);box-shadow:0 30px 70px rgba(0,0,0,.5)
-  }
-  .phone::before{content:"";position:absolute;top:14px;left:50%;transform:translateX(-50%);width:60px;height:6px;border-radius:3px;background:rgba(255,255,255,.25)}
-  .phone-in{height:100%;border-radius:26px;overflow:hidden;background:#0c0f24;padding:26px 12px 14px;position:relative}
-  .phone .staff2{position:absolute;left:8%;right:8%;top:16%}
-  .phone .staff2 .row{height:64px;position:relative;margin-bottom:10px}
-  .phone .staff2 .row::before{content:"";position:absolute;inset:0;top:6px;height:24px;background:repeating-linear-gradient(#dbe6ff 0 2px,transparent 2px 6px);opacity:.85}
-  .phone .staff2 .row::after{content:"";position:absolute;top:40px;height:16px;left:0;right:0;background:repeating-linear-gradient(#a9c0ee 0 2px,transparent 2px 6px);opacity:.35}
-  .phone .c{position:absolute;top:14%;bottom:10%;left:52%;width:4px;background:linear-gradient(#ff8a72,#d93a26);border-radius:2px;box-shadow:0 0 12px rgba(255,90,70,.6)}
-  .phone .btn-play{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);width:56px;height:56px;border-radius:50%;
-    background:linear-gradient(135deg,#4b98e7,#7b5cf0);display:grid;place-items:center;color:#fff;font-size:20px;
-    box-shadow:0 10px 26px rgba(90,120,240,.5)}
 
   /* 教程 */
   .guide{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
@@ -199,7 +178,7 @@
   }
   .tip b{color:#9cc8ff}
 
-  /* FAQ 手风琴 */
+  /* FAQ */
   .faq{max-width:820px;margin:0 auto}
   .faq-item{border-radius:16px;margin-bottom:12px;overflow:hidden;
     background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
@@ -250,11 +229,11 @@
   .reveal.in{opacity:1;transform:none}
 
   @media(max-width:900px){
+    .hero{grid-template-columns:1fr;gap:36px;padding:60px 0 40px}
     .grid3,.flow,.split,.guide,.buy{grid-template-columns:1fr}
     .flow{grid-template-columns:1fr 1fr}
+    .showcase,.showcase-row{grid-template-columns:1fr}
     .menu{display:none}
-    .mock-body{height:340px;flex-direction:column;overflow:auto}
-    .m-left,.m-right{width:100%;border:none}
     .step .arr{display:none}
   }
 </style>
@@ -265,51 +244,32 @@
 <nav>
   <div class="logo"><img src="logo.png" alt="RhythmScore"><span>RhythmScore</span> <span style="font-weight:400;color:var(--ink3);font-size:13px">律谱</span></div>
   <div class="menu">
-    <a href="#pain">痛点</a><a href="#smart">功能</a><a href="#guide">教程</a><a href="#faq">FAQ</a><a href="#buy">购买</a>
+    <a href="#pain">痛点</a><a href="#showcase">界面</a><a href="#smart">功能</a><a href="#guide">教程</a><a href="#buy">购买</a>
   </div>
   <a class="cta" href="#download">免费下载</a>
 </nav>
 
-<header>
-  <div class="wrap">
-    <span class="tag">macOS 桌面端 · 音乐教学利器 · 全乐器通用</span>
-    <h1>让乐谱，动起来</h1>
-    <p class="sub">RhythmScore 把纸上的乐谱变成<b>跟着音乐自动走</b>的动态谱 —— 导入曲谱、画线分节、对好时间点，一键导出<b>带光标跟随的 MP4</b>，学生看谱就能跟练。</p>
-    <div class="hero-cta">
-      <a class="cta" href="#download">立即开始 &nbsp;→</a>
-      <a class="cta ghost" href="#smart">看看功能</a>
-    </div>
-
-    <div class="mock reveal">
-      <div class="mock-bar"><i></i><i></i><i></i></div>
-      <div class="mock-body">
-        <div class="m-left">
-          <div class="m-title"><b>1</b>分割乐谱</div>
-          <div class="m-btn w"></div><div class="m-btn w2"></div>
-          <div class="m-colors"><i></i><i></i><i></i><i></i><i></i></div>
-          <div class="m-toggle"></div>
-          <div style="margin-top:16px"><div class="m-title"><b>2</b>音频对点</div></div>
-          <div class="m-btn w2"></div><div class="wave"></div>
-          <div class="mark"><span>● 12 个时间点</span></div>
-        </div>
-        <div class="m-center">
-          <div class="staff">
-            <div class="row"><span class="notes" style="left:12%"><i></i><i></i><i></i></span></div>
-            <div class="row"><span class="notes" style="left:38%"><i></i><i class="r"></i><i></i></span></div>
-            <div class="row"><span class="notes" style="left:64%"><i></i><i></i><i class="r"></i></span></div>
-          </div>
-          <div class="cursorline"></div>
-          <div class="m-foot"></div>
-        </div>
-        <div class="m-right">
-          <div class="m-title"><b>3</b>视频导出</div>
-          <div class="m-btn w"></div><div class="m-btn w2"></div>
-          <div class="m-title" style="margin-top:16px">高亮设置</div>
-          <div class="m-btn w"></div>
-          <div class="m-colors"><i></i><i></i><i></i><i></i><i></i></div>
-          <div style="margin-top:14px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:12px;color:#cfe4ff;background:linear-gradient(135deg,#4b98e7,#7b5cf0)">导出 MP4</div>
-        </div>
+<header class="wrap">
+  <div class="hero">
+    <div>
+      <span class="hero-tag">macOS 桌面端 · 音乐教学利器 · 全乐器通用</span>
+      <h1>让乐谱，动起来</h1>
+      <p class="hero-sub">RhythmScore 把纸上的乐谱变成<b>跟着音乐自动走</b>的动态谱 —— 导入曲谱、画线分节、对好时间点，一键导出<b>带光标跟随的 MP4</b>，学生看谱就能跟练。</p>
+      <div class="hero-cta">
+        <a class="cta" href="#download">立即开始 &nbsp;→</a>
+        <a class="cta ghost" href="#showcase">看看界面</a>
       </div>
+      <div class="hero-stats">
+        <div><b>3 步</b>从谱子到 MP4</div>
+        <div><b>10 种</b>乐器通用</div>
+        <div><b>4K</b>高质量导出</div>
+      </div>
+    </div>
+    <div class="hero-shot">
+      <div class="bar">
+        <i></i><i></i><i></i><span class="ttl">RhythmScore</span>
+      </div>
+      <img src="screenshot-main.jpg" alt="RhythmScore 主界面">
     </div>
   </div>
 </header>
@@ -318,13 +278,43 @@
   <div class="wrap">
     <div class="sec-head reveal">
       <div class="sec-k">PAIN POINTS</div>
-      <h2>教学路上的三道坎，我们帮你跨过去</h2>
+      <h2>教学路上的三道坎</h2>
       <p>每天面对纸质乐谱的老师们，这些场景是不是很熟悉？</p>
     </div>
     <div class="grid3">
       <div class="card reveal"><div class="ico">📄</div><h3>乐谱不会动，跟练全靠脑子记</h3><p>打印的乐谱安安静静躺在那，学生一边听音乐一边低头找自己看到哪了，一遍遍走神重来。</p></div>
       <div class="card reveal"><div class="ico">🔁</div><h3>反复段落，对点对到怀疑人生</h3><p>一段反复回两次，同一小节记两个时间点、第二遍还要跳回原位 —— 手写对表又慢又容易错。</p></div>
       <div class="card reveal"><div class="ico">⏱</div><h3>备课两小时，上课五分钟</h3><p>每节课前手动准备谱子、录音、计时器，上完课学生拿不到能带回家的练习材料。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="showcase">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-k">THE INTERFACE</div>
+      <h2>真实界面一览</h2>
+      <p>macOS 原生质感，液态玻璃 UI，白天黑夜自动跟随系统</p>
+    </div>
+    <div class="showcase reveal">
+      <div class="shot">
+        <img src="screenshot-edit.png" alt="分割乐谱与画线">
+        <div class="label">① 分割乐谱 · 画线分节</div>
+      </div>
+      <div class="shot">
+        <img src="screenshot-highlight-continuous.png" alt="高亮设置·连续光标">
+        <div class="label">② 高亮设置 · 连续光标</div>
+      </div>
+    </div>
+    <div class="showcase-row reveal">
+      <div class="shot">
+        <img src="screenshot-highlight-jump.png" alt="高亮设置·跳框模式">
+        <div class="label">③ 跳框模式 · 小节高亮切换</div>
+      </div>
+      <div class="shot">
+        <img src="screenshot-export.png" alt="生成视频">
+        <div class="label">④ 一键导出 MP4</div>
+      </div>
     </div>
   </div>
 </section>
@@ -337,10 +327,10 @@
       <p>从导入到导出，一条清晰的工作流，没有任何多余步骤</p>
     </div>
     <div class="flow reveal">
-      <div class="step"><span class="arr">→</span><h4>导入曲谱</h4><p>拖入 PDF / 图片，多张自动拼接、可排序</p></div>
-      <div class="step"><span class="arr">→</span><h4>画线分节</h4><p>划横竖线切出小节，自动编号吸附对齐</p></div>
-      <div class="step"><span class="arr">→</span><h4>边听边对点</h4><p>播放音频点击小节，反复段落多点几次</p></div>
-      <div class="step"><h4>一键成片</h4><p>导出 MP4，光标跟着音乐在谱上走</p></div>
+      <div class="step"><span class="arr">→</span><h4>导入曲谱</h4><p>拖入 PDF / 图片，多张自动拼接</p></div>
+      <div class="step"><span class="arr">→</span><h4>画线分节</h4><p>划横竖线切出小节，自动吸附</p></div>
+      <div class="step"><span class="arr">→</span><h4>边听边对点</h4><p>点击小节打点，反复段落多点几次</p></div>
+      <div class="step"><h4>一键成片</h4><p>导出 MP4，光标跟着音乐走</p></div>
     </div>
   </div>
 </section>
