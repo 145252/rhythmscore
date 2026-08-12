@@ -409,7 +409,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  overflow-y: auto;
+  overflow-y: scroll;
+  /* 常驻滚动条轨道:宽度恒定不跳动(无需滚动时是空细条,需要时 thumb 出现) */
+  scrollbar-gutter: stable;
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 16px;
   box-shadow: 0 10px 34px rgba(30, 40, 90, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
