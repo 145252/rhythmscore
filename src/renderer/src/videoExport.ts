@@ -623,27 +623,6 @@ export async function recordVideo(
   return { blob, duration }
 }
 
-/** ProRes 4444 需要 premultiplied alpha:straight → premultiplied(全透明处 RGB 归零,半透明处 RGB×alpha) */
-function premultiplyAlpha(c: HTMLCanvasElement): void {
-  const ctx = c.getContext('2d')
-  if (!ctx) return
-  const id = ctx.getImageData(0, 0, c.width, c.height)
-  const d = id.data
-  for (let i = 0; i < d.length; i += 4) {
-    const a = d[i + 3]
-    if (a === 0) {
-      d[i] = 0
-      d[i + 1] = 0
-      d[i + 2] = 0
-    } else if (a !== 255) {
-      d[i] = (d[i] * a) / 255
-      d[i + 1] = (d[i + 1] * a) / 255
-      d[i + 2] = (d[i + 2] * a) / 255
-    }
-  }
-  ctx.putImageData(id, 0, 0)
-}
-
 /** Blob → base64 */
 export async function blobToBase64(blob: Blob): Promise<string> {  const buf = new Uint8Array(await blob.arrayBuffer())
   let binary = ''

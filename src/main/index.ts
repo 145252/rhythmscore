@@ -332,7 +332,18 @@ ipcMain.handle(
         defaultPath: `${opts.defaultName}-透明.mov`,
         filters: [{ name: 'MOV 视频(透明通道)', extensions: ['mov'] }]
       })
-      if (r.canceled || !r.filePath) return { canceled: true }
+      if (r.canceled || !r.filePath) {
+        // 取消:清理帧临时目录,避免泄漏
+        void (async () => {
+          try {
+            const { rm } = await import('fs/promises')
+            await rm(dirId, { recursive: true, force: true })
+          } catch {
+            /* ignore */
+          }
+        })()
+        return { canceled: true }
+      }
       await encodeAlphaMov(dirId, opts.fps, r.filePath, opts.lowQuality === true)
       // 清理帧临时目录(异步)
       void (async () => {
