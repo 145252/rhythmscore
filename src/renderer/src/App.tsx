@@ -4,6 +4,7 @@ import TopBar from './components/TopBar'
 import LeftPanel from './components/LeftPanel'
 import ScoreCanvas from './components/ScoreCanvas'
 import RightPanel from './components/RightPanel'
+import BottomAudioBar from './components/BottomAudioBar'
 import LicenseModal from './components/LicenseModal'
 import brandLogo from './assets/rhythmscore-logo.png'
 
@@ -42,6 +43,7 @@ export default function App(): React.JSX.Element {
         <ScoreCanvas />
         <RightPanel />
       </div>
+      <BottomAudioBar />
       <LicenseModal open={licenseModalOpen} onClose={() => setLicenseModalOpen(false)} />
     </div>
   )

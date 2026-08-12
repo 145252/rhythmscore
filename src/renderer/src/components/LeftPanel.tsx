@@ -1,7 +1,6 @@
 import React from 'react'
 import { AlignVerticalJustifyCenter, Eraser, Minus, MousePointer2, Trash2 } from 'lucide-react'
 import { useStore } from '../store'
-import AudioPanel from './AudioPanel'
 import ColorSwatches from './ColorSwatches'
 import CollapseCard from './CollapseCard'
 
@@ -147,10 +146,6 @@ export default function LeftPanel(): React.JSX.Element {
 
         <p className="hint">{TOOL_HINTS[tool]}</p>
       </CollapseCard>
-
-      <div className="section-gap" />
-
-      <AudioPanel />
     </aside>
   )
 }
