@@ -711,8 +711,6 @@ export async function recordVideoAlpha(
         frame++
         pending++
         renderFrame(ctx, W, H, t, data)
-        // ProRes 4444 需要 premultiplied alpha:导出帧前把 straight alpha 预乘(背景透明处 RGB 归零)
-        premultiplyAlpha(canvas)
         canvas.toBlob((blob) => {
           void (async () => {
             try {

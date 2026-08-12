@@ -121,7 +121,7 @@ export async function exportVideo(
 
 /**
  * 透明通道导出:帧序列 PNG → MOV(ProRes 4444 带 alpha)(剪辑软件可叠加)。
- * 帧文件命名 frame-00001.png ...;ProRes 4444 用 yuva444 保留 alpha。
+ * 帧文件命名 frame-00001.png ...;Animation(qtrle) 是 Apple 原生透明格式,QuickTime/剪映/Premiere 通用。
  */
 export async function encodeAlphaMov(
   framesDir: string,
@@ -133,10 +133,7 @@ export async function encodeAlphaMov(
     '-y',
     '-framerate', String(fps),
     '-i', join(framesDir, 'frame-%05d.png'),
-    '-c:v', 'prores_ks',
-    '-profile:v', '4444',
-    '-pix_fmt', 'yuva444p10le',
-    '-vendor', 'apl0',
+    '-c:v', 'qtrle',
     destPath
   ]
   await runFfmpeg(args)
