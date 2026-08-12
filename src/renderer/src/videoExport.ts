@@ -72,7 +72,7 @@ export interface RenderData {
   /** 免费版:导出时叠加动态移动水印(专业版 false) */
   watermark: boolean
   /** 视频背景:original=原样 / white / black / transparent=透明通道(WebM) */
-  background: 'original' | 'white' | 'black' | 'transparent'
+  background: 'original' | 'white' | 'black' | 'transparent' | 'green'
   /** 跳框模式高亮颜色 */
   jumpColor: string
   /** 跳框模式当前小节填充浓度(0~1) */
@@ -246,7 +246,14 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
   if (data.background === 'transparent') {
     ctx.clearRect(0, 0, W, H)
   } else {
-    ctx.fillStyle = data.background === 'black' ? '#000' : data.background === 'white' ? '#fff' : '#f4f4f1'
+    ctx.fillStyle =
+      data.background === 'black'
+        ? '#000'
+        : data.background === 'white'
+          ? '#fff'
+          : data.background === 'green'
+            ? '#00b140'
+            : '#f4f4f1'
     ctx.fillRect(0, 0, W, H)
   }
 

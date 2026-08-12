@@ -407,7 +407,8 @@ export default function RightPanel(): React.JSX.Element {
               ['original', '原样'],
               ['white', '白色'],
               ['black', '黑色'],
-              ['transparent', '透明通道']
+              ['transparent', '透明通道'],
+              ['green', '绿幕']
             ] as const
           ).map(([v, label]) => (
             <span
@@ -420,7 +421,10 @@ export default function RightPanel(): React.JSX.Element {
           ))}
         </div>
         {videoBackground === 'transparent' && (
-          <p className="hint">透明通道导出为 WebM(VP9 带 alpha),剪映/Premiere 等可直接叠加;处理速度比 MP4 慢。需先开启「抠图」。</p>
+          <p className="hint">透明通道导出为 WebM(VP9 带 alpha),Premiere/达芬奇直接叠加;剪映不识别透明,请用「绿幕」。</p>
+        )}
+        {videoBackground === 'green' && (
+          <p className="hint">绿幕导出为 MP4,剪映中选中素材 → 画面 → 智能抠像/色度抠图 → 一键去除绿幕即可叠加。</p>
         )}
 
         <label className="split-opt">
