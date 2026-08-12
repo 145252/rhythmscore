@@ -252,7 +252,7 @@ export default function RightPanel(): React.JSX.Element {
 
   return (
     <aside className="side-panel right">
-      <CollapseCard title="高亮设置">
+      <CollapseCard title="高亮设置" forceOpen={!!score}>
         <p className="label">跟随模式</p>
         <div className="mode-row">
           <button className={`btn mode ${mode === 'continuous' ? 'active' : ''}`} onClick={() => setMode('continuous')} disabled={busy}>

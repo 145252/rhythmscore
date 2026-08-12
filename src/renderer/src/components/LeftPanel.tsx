@@ -12,6 +12,7 @@ const TOOL_HINTS: Record<string, string> = {
 }
 
 export default function LeftPanel(): React.JSX.Element {
+  const score = useStore((s) => s.score)
   const tool = useStore((s) => s.tool)
   const setTool = useStore((s) => s.setTool)
   const lineWidth = useStore((s) => s.lineWidth)
@@ -39,7 +40,7 @@ export default function LeftPanel(): React.JSX.Element {
 
   return (
     <aside className="side-panel left">
-      <CollapseCard title="分割乐谱">
+      <CollapseCard title="分割乐谱" forceOpen={!!score}>
         <div className="tool-grid">
           {tools.map((t) => (
             <button

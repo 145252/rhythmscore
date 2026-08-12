@@ -5,6 +5,8 @@ interface CollapseCardProps {
   title: string
   /** 默认是否展开(默认收起) */
   defaultOpen?: boolean
+  /** 强制展开信号:从 false→true 时自动展开(如导入曲谱后) */
+  forceOpen?: boolean
   children: ReactNode
 }
 
@@ -12,6 +14,7 @@ interface CollapseCardProps {
 export default function CollapseCard({
   title,
   defaultOpen = false,
+  forceOpen = false,
   children
 }: CollapseCardProps): React.JSX.Element {
   const [open, setOpen] = useState(defaultOpen)
@@ -24,6 +27,10 @@ export default function CollapseCard({
     }
     setReady(false)
   }, [open])
+  // 外部强制展开信号
+  useEffect(() => {
+    if (forceOpen) setOpen(true)
+  }, [forceOpen])
   return (
     <div className={`card collapse-card ${open ? 'open' : ''} ${open && ready ? 'ready' : ''}`}>
       <button
