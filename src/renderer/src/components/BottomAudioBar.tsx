@@ -87,6 +87,42 @@ export default function BottomAudioBar(): React.JSX.Element {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // 键盘:空格=播放/暂停(仅导入音频后);左右键=未划分小节±5秒 / 划分后切换小节
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const t = e.target as HTMLElement | null
+      const inField = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)
+      if (inField) return
+      if (e.key === ' ') {
+        const st = useStore.getState()
+        if (!st.audioDataUrl) return
+        e.preventDefault()
+        const a = getAudio()
+        if (a.paused) void a.play().catch(() => undefined)
+        else a.pause()
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const st = useStore.getState()
+        if (!st.audioDataUrl) return
+        e.preventDefault()
+        const a = getAudio()
+        const total = getMeasureCount(st.hLines, st.vLines, st.score?.width ?? 0)
+        if (total > 0) {
+          // 已划分小节:切换当前小节(高亮)
+          const cur = st.currentMeasure ?? 1
+          const next = e.key === 'ArrowLeft' ? cur - 1 : cur + 1
+          if (next >= 1 && next <= total) st.selectMeasure(next)
+        } else {
+          // 未划分:音频 ±5 秒
+          const dur = isFinite(a.duration) ? a.duration : 0
+          a.currentTime = Math.min(Math.max(a.currentTime + (e.key === 'ArrowLeft' ? -5 : 5), 0), dur || 0)
+          st.setCurrentTime(a.currentTime)
+        }
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
   // 音频源变化 → 重置播放器 + 解码波形
   useEffect(() => {
     if (!audioDataUrl) return
