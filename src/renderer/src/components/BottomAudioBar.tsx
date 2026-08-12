@@ -213,23 +213,11 @@ export default function BottomAudioBar(): React.JSX.Element {
       ctx.fillRect(i * bw, (WAVE_H - h) / 2, Math.max(1, bw - 0.5), h)
     }
 
-    // 对点标记:橙色竖线 + 小徽章(圆角底+数字,自动避让边缘)
-    ctx.font = '9px sans-serif'
+    // 对点标记:只画橙色竖线(数字容易重叠看不清,只保留定位线)
     for (const ev of markEvents) {
       const x = (ev.time / audioDuration) * W
       ctx.fillStyle = '#BA7517'
       ctx.fillRect(x - 1, 0, 2, WAVE_H)
-      const txt = String(ev.n)
-      const tw = ctx.measureText(txt).width + 6
-      let bx = x + 3
-      if (bx + tw > W) bx = x - tw - 3
-      bx = Math.max(2, Math.min(bx, W - tw - 2))
-      ctx.fillStyle = 'rgba(186,117,23,.92)'
-      ctx.beginPath()
-      ctx.roundRect(bx, 1, tw, 12, 3)
-      ctx.fill()
-      ctx.fillStyle = '#fff'
-      ctx.fillText(txt, bx + 3, 10)
     }
     // 播放游标
     const cx = (currentTime / audioDuration) * W
@@ -350,7 +338,7 @@ export default function BottomAudioBar(): React.JSX.Element {
             <button className="btn subtle" onClick={clearAudio}>
               移除音频
             </button>
-            {markedCount > 0 && <span className="marked-count">{markedCount} 点</span>}
+            {markedCount > 0 && <span className="count-pill">{markedCount} 点</span>}
           </div>
         </>
       )}

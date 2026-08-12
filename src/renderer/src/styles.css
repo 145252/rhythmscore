@@ -1713,7 +1713,7 @@ body.dark .lic-head {
 .bar-controls .measure-nav{display:flex;align-items:center;gap:4px}
 .bar-controls .cur-measure{font-size:13px;color:var(--ink);min-width:52px;text-align:center;white-space:nowrap}
 .bar-controls .marking-hint{color:#e09a1f;font-size:12px}
-.bar-controls .marked-count{font-size:12px;color:var(--ink3);white-space:nowrap}
+.bar-controls .count-pill{font-size:12px;color:var(--ink2);white-space:nowrap;background:rgba(120,140,180,.18);border:1px solid rgba(120,140,180,.3);padding:3px 9px;border-radius:999px}
 
 /* 底部播放条:黑夜模式适配 */
 body.dark .bottom-bar{
