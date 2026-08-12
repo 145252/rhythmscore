@@ -40,7 +40,7 @@ export default function LeftPanel(): React.JSX.Element {
 
   return (
     <aside className="side-panel left">
-      <CollapseCard num="1" title="分割乐谱">
+      <CollapseCard title="分割乐谱">
         <div className="tool-grid">
           {tools.map((t) => (
             <button

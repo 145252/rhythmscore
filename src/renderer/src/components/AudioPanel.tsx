@@ -226,7 +226,7 @@ export default function AudioPanel(): React.JSX.Element {
   const markedCount = markEvents.length
 
   return (
-    <CollapseCard num="2" title="音频导入">
+    <CollapseCard title="音频导入">
       {!audioDataUrl ? (
         <>
           <div

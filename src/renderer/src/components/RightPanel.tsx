@@ -252,7 +252,7 @@ export default function RightPanel(): React.JSX.Element {
 
   return (
     <aside className="side-panel right">
-      <CollapseCard num="3" title="高亮设置">
+      <CollapseCard title="高亮设置">
         <p className="label">跟随模式</p>
         <div className="mode-row">
           <button className={`btn mode ${mode === 'continuous' ? 'active' : ''}`} onClick={() => setMode('continuous')} disabled={busy}>
@@ -392,7 +392,7 @@ export default function RightPanel(): React.JSX.Element {
 
       <div className="section-gap" />
 
-      <CollapseCard num="4" title="生成视频">
+      <CollapseCard title="生成视频">
         <p className="label">画面比例</p>
         <div className="ratio-grid">
           {RATIOS.map((r) => (
