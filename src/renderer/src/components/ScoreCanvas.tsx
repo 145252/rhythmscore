@@ -123,6 +123,7 @@ export default function ScoreCanvas(): React.JSX.Element {
   const addBeatLine = useStore((s) => s.addBeatLine)
   const removeBeatLine = useStore((s) => s.removeBeatLine)
   const removeBackground = useStore((s) => s.removeBackground)
+  const invertColors = useStore((s) => s.invertColors)
   /** 显示源:抠图开启且有透明版时用透明图 */
   const displayUrl = score && removeBackground && score.transparentDataUrl ? score.transparentDataUrl : score ? score.dataUrl : ''
   const markLineColor = useStore((s) => s.markLineColor)
@@ -259,15 +260,18 @@ export default function ScoreCanvas(): React.JSX.Element {
   }, [displayUrl, fitWidth])
 
   // 抠图:开启时对当前曲谱执行去白底(异步,完成后写入 transparentDataUrl)
+  // 反色开关变化时:若缓存版本与当前反色状态不符,重新生成
   useEffect(() => {
-    if (!score || !removeBackground || score.transparentDataUrl) return
+    if (!score || !removeBackground) return
+    const cachedMatch = score.transparentDataUrl && score.transparentInverted === invertColors
+    if (cachedMatch) return
     let cancel = false
     void (async () => {
       const img = await loadImageEl(score.dataUrl).catch(() => null)
       if (cancel || !img) return
       try {
-        const tUrl = await removeWhiteBackground(img)
-        if (!cancel) setScore({ ...score, transparentDataUrl: tUrl })
+        const tUrl = await removeWhiteBackground(img, invertColors)
+        if (!cancel) setScore({ ...score, transparentDataUrl: tUrl, transparentInverted: invertColors })
       } catch {
         /* 抠图失败忽略,保持原图 */
       }
@@ -275,7 +279,7 @@ export default function ScoreCanvas(): React.JSX.Element {
     return () => {
       cancel = true
     }
-  }, [score, removeBackground, setScore])
+  }, [score, removeBackground, invertColors, setScore])
 
   const zoomBy = useCallback((factor: number) => {
     const st = useStore.getState()

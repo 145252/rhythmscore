@@ -27,6 +27,8 @@ export default function LeftPanel(): React.JSX.Element {
   const resetBeatRatios = useStore((s) => s.resetBeatRatios)
   const removeBackground = useStore((s) => s.removeBackground)
   const setRemoveBackground = useStore((s) => s.setRemoveBackground)
+  const invertColors = useStore((s) => s.invertColors)
+  const setInvertColors = useStore((s) => s.setInvertColors)
 
   const tools = [
     { id: 'hline' as const, icon: <Minus size={16} />, label: '横线' },
@@ -92,9 +94,25 @@ export default function LeftPanel(): React.JSX.Element {
           </span>
         </label>
         {removeBackground && (
-          <p className="hint">
-            去除纸张背景,谱面透明区域以棋盘格示意;导出时可选「透明通道」输出 WebM,方便叠加到教学视频。
-          </p>
+          <>
+            <p className="hint">
+              去除纸张背景,谱面透明区域以棋盘格示意;导出时可选「透明通道」输出 MOV,方便叠加到教学视频。
+            </p>
+            <label className="marking-toggle" style={{ marginTop: 8 }}>
+              <span>反色(黑音符 → 白)</span>
+              <input
+                type="checkbox"
+                checked={invertColors}
+                onChange={(e) => setInvertColors(e.target.checked)}
+              />
+              <span className="toggle-track">
+                <span className="toggle-thumb" />
+              </span>
+            </label>
+            {invertColors && (
+              <p className="hint">五线谱/音符反成白色,适合叠加到深色背景的视频上。</p>
+            )}
+          </>
         )}
 
         <div className="line-width-row">

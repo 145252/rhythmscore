@@ -6,6 +6,8 @@ export interface ScoreSource {
   dataUrl: string
   /** 抠图后的透明背景 dataURL(去除白色背景;未处理时为空) */
   transparentDataUrl?: string
+  /** transparentDataUrl 是否为反色版(黑→白) */
+  transparentInverted?: boolean
   /** 合并图原始像素宽高(坐标基准) */
   width: number
   height: number
@@ -61,6 +63,8 @@ export interface ProjectFile {
   beatRatiosByMeasure?: Record<number, number[]>
   /** 抠图(去除白色背景) */
   removeBackground?: boolean
+  /** 反色(黑音符→白音符,需配合抠图) */
+  invertColors?: boolean
   /** 导出背景:original/white/black/transparent */
   videoBackground?: 'original' | 'white' | 'black' | 'transparent'
   /** 音频内容(随项目保存,打开后自动恢复,无需重新导入) */

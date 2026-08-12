@@ -10,9 +10,10 @@ const T1 = 66
 
 /**
  * 对图片执行去白底,返回透明 PNG dataURL。
+ * @param invert 是否反色(保留内容黑→白,适合叠加到深色背景)
  * 大图逐像素处理,用平方距离避免大部分 sqrt,保证速度。
  */
-export async function removeWhiteBackground(img: HTMLImageElement): Promise<string> {
+export async function removeWhiteBackground(img: HTMLImageElement, invert = false): Promise<string> {
   const w = img.naturalWidth
   const h = img.naturalHeight
   const c = document.createElement('canvas')
@@ -42,6 +43,12 @@ export async function removeWhiteBackground(img: HTMLImageElement): Promise<stri
       d[o + 3] = Math.round(a)
     }
     // 距离 ≥ T1:保持原 alpha(完全不透明)
+    // 反色:保留内容(alpha>0)反色,背景(透明)保持
+    if (invert && d[o + 3] > 0) {
+      d[o] = 255 - r
+      d[o + 1] = 255 - g
+      d[o + 2] = 255 - b
+    }
   }
   ctx.putImageData(id, 0, 0)
   return c.toDataURL('image/png')
