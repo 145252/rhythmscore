@@ -3,6 +3,7 @@ import { AlignVerticalJustifyCenter, Eraser, Minus, MousePointer2, Trash2 } from
 import { useStore } from '../store'
 import ColorSwatches from './ColorSwatches'
 import CollapseCard from './CollapseCard'
+import MetronomePanel from './MetronomePanel'
 
 const TOOL_HINTS: Record<string, string> = {
   hline: '横线模式:点击每一行谱表的上下边界。横线会自动截断在左右边框竖线之间',
@@ -147,6 +148,8 @@ export default function LeftPanel(): React.JSX.Element {
 
         <p className="hint">{TOOL_HINTS[tool]}</p>
       </CollapseCard>
+
+      <MetronomePanel />
     </aside>
   )
 }
