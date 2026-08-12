@@ -1701,7 +1701,7 @@ body.dark .lic-head {
 .wave-time{position:absolute;left:8px;right:8px;bottom:2px;display:flex;justify-content:space-between;
   font-size:10.5px;color:var(--ink3);pointer-events:none;text-shadow:0 1px 2px rgba(255,255,255,.7)}
 /* 控制区 */
-.bar-controls{flex:none;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.bar-controls{flex:none;display:flex;align-items:center;gap:8px;flex-shrink:0;height:34px}
 .bar-controls .btn.icon{width:34px;height:34px}
 .bar-controls .btn.play{
   width:34px;height:34px;border-radius:50%;color:#fff;
@@ -1739,3 +1739,5 @@ body.dark .wave-time{color:#7d89ab;text-shadow:none}
 .bar-meta-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;margin-right:12px}
 .bar-meta-time{flex:none;font-variant-numeric:tabular-nums}
 body.dark .bar-meta{border-top-color:rgba(160,180,220,.15)}
+
+.bar-controls > *{height:34px;display:flex;align-items:center;flex:none}
