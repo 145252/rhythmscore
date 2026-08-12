@@ -1688,8 +1688,10 @@ body.dark .lic-head {
 .bar-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .bar-info .audio-name{
   display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);
+  min-width:0;max-width:100%;
   overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
 }
+.bar-info .audio-name span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
 .wave-wrap{position:relative}
 .wave-canvas{width:100%;display:block;border-radius:8px;cursor:pointer}
 .wave-time{position:absolute;left:8px;right:8px;bottom:2px;display:flex;justify-content:space-between;

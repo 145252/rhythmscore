@@ -188,12 +188,19 @@ export default function BottomAudioBar(): React.JSX.Element {
     ctx.clearRect(0, 0, W, WAVE_H)
 
     if (!audioDataUrl || !waveformPeaks || !audioDuration) {
-      // 装饰假波形
-      const fake = 220
-      ctx.fillStyle = 'rgba(120,140,180,0.22)'
+      // 装饰假波形:极密细条,多频正弦叠加产生自然高低错落
+      const fake = 520
+      ctx.fillStyle = 'rgba(120,140,180,0.24)'
+      const bw2 = W / fake
       for (let i = 0; i < fake; i++) {
-        const h = 6 + Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6)) * (WAVE_H * 0.75)
-        ctx.fillRect((i / fake) * W, (WAVE_H - h) / 2, Math.max(0.6, W / fake - 0.4), h)
+        const v =
+          0.5 +
+          0.28 * Math.sin(i * 0.85) +
+          0.18 * Math.sin(i * 2.15 + 1.2) +
+          0.12 * Math.sin(i * 4.9 + 2.4) +
+          0.06 * Math.sin(i * 9.3 + 0.7)
+        const h = 3 + Math.max(0, v) * WAVE_H * 0.82
+        ctx.fillRect(i * bw2, (WAVE_H - h) / 2, Math.max(0.5, bw2 - 0.35), h)
       }
       return
     }
