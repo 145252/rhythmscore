@@ -12,10 +12,10 @@
     --blue:#4b98e7;--blue2:#2e7bc9;--purple:#8b7bff;--pink:#ff5e8a;--red:#ff4d4d;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;overflow-x:hidden}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
-    color:var(--ink);background:var(--bg0);overflow-x:hidden;line-height:1.6;
+    color:var(--ink);background:var(--bg0);overflow-x:hidden;line-height:1.6;max-width:100%;
   }
   ::selection{background:rgba(75,152,231,.35)}
   .bg{
@@ -275,6 +275,10 @@
     .showcase{grid-template-columns:1fr}
     .menu{display:none}
     .step .arr{display:none}
+    /* 窄屏:联系区块收窄内边距,二维码缩小防溢出 */
+    .contact{padding:36px 22px}
+    .contact .qr{width:200px;height:200px;padding:12px}
+    .contact .info-row{flex-wrap:wrap;word-break:break-all}
   }
 
   /* 最终 hover 覆盖(放在 .reveal.in 之后,确保优先):板块放大 + 辉光 */
