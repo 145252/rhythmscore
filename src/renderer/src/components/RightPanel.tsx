@@ -436,7 +436,7 @@ export default function RightPanel(): React.JSX.Element {
         )}
 
         <label className="marking-toggle" style={{ marginTop: 10 }}>
-          <span>玻璃背板(衬托曲谱)</span>
+          <span>底层背板(衬托曲谱)</span>
           <input
             type="checkbox"
             checked={glassBackdrop}
@@ -461,7 +461,7 @@ export default function RightPanel(): React.JSX.Element {
               />
               <span className="lv">{glassOpacity}%</span>
             </div>
-            <p className="hint">在谱面内容下方垫半透明玻璃板(黑谱自动配白色玻璃,白谱配深色玻璃),合成视频时曲谱更清晰。</p>
+            <p className="hint">黑谱垫白色底层、白谱垫深色底层(浓度可调),曲谱画在底层之上,合成视频时清晰不泛白。</p>
           </>
         )}
 

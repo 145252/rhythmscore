@@ -73,14 +73,12 @@ export interface RenderData {
   watermark: boolean
   /** 视频背景:original=原样 / white / black / transparent=透明通道(WebM) */
   background: 'original' | 'white' | 'black' | 'transparent'
-  /** 玻璃背板:曲谱内容下方垫半透明玻璃板(黑谱→白玻璃 / 白谱→黑玻璃) */
+  /** 底层背板:整幅半透明垫层(黑谱→白底 / 白谱→深底,衬托谱面) */
   glassBackdrop: boolean
   /** 玻璃背板浓度(0-100) */
   glassOpacity: number
   /** 玻璃颜色(hex) */
   glassColor: string
-  /** 内部:预生成的玻璃板(低分辨率 mask 着色) */
-  backdrop?: HTMLCanvasElement | null
   /** 跳框模式高亮颜色 */
   jumpColor: string
   /** 跳框模式当前小节填充浓度(0~1) */
@@ -263,18 +261,10 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
     ctx.fillRect(0, 0, W, H)
   }
 
-  // ---- 玻璃背板(曲谱衬底:按内容 mask 半透明玻璃板,衬托谱面) ----
-  if (data.backdrop) {
-    const bw = data.backdrop.width
-    const bh = data.backdrop.height
-    const ph = data.scoreH * (W / data.scoreW)
-    const sx = (offsetX / W) * bw
-    const sy = (offsetY / ph) * bh
-    const sw = bw
-    const sh = Math.min(bh, (H / ph) * bh)
-    ctx.imageSmoothingEnabled = true
-    ctx.imageSmoothingQuality = 'high'
-    ctx.drawImage(data.backdrop, sx, sy, sw, sh, 0, 0, W, H)
+  // ---- 底层背板(整幅半透明垫层:黑谱→白底 / 白谱→深底,浓度可调,衬托谱面) ----
+  if (data.glassBackdrop && data.glassOpacity > 0) {
+    ctx.fillStyle = hexToRgba(data.glassColor, data.glassOpacity / 100)
+    ctx.fillRect(0, 0, W, H)
   }
 
   // ---- 曲谱 ----
@@ -542,39 +532,6 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) }
 }
 
-/**
- * 生成玻璃背板:谱面 alpha mask 低分辨率降采样(双线性自带柔和模糊,玻璃感)
- * → 按玻璃色着色 + 浓度,存 data.backdrop 供逐帧绘制。
- */
-function prepareBackdrop(data: RenderData, W: number): void {
-  if (!data.glassBackdrop || !data.img) return
-  const scale = W / data.scoreW
-  const preH = Math.max(1, Math.round(data.scoreH * scale))
-  const mw = Math.max(16, Math.round(W / 48))
-  const mh = Math.max(16, Math.round(preH / 48))
-  const mc = document.createElement('canvas')
-  mc.width = mw
-  mc.height = mh
-  const mctx = mc.getContext('2d')
-  if (!mctx) return
-  mctx.drawImage(data.img, 0, 0, data.scoreW, data.scoreH, 0, 0, mw, mh)
-  const imgd = mctx.getImageData(0, 0, mw, mh)
-  const dd = imgd.data
-  const col = hexToRgb(data.glassColor)
-  const op = (data.glassOpacity / 100) * 255
-  for (let i = 0; i < dd.length; i += 4) {
-    const a = dd[i + 3]
-    if (a > 0) {
-      dd[i] = col.r
-      dd[i + 1] = col.g
-      dd[i + 2] = col.b
-      dd[i + 3] = Math.round((a / 255) * op)
-    }
-  }
-  mctx.putImageData(imgd, 0, 0)
-  data.backdrop = mc
-}
-
 function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {  ctx.beginPath()
   ctx.moveTo(x + r, y)
   ctx.arcTo(x + w, y, x + w, y + h, r)
@@ -623,7 +580,6 @@ export async function recordVideo(
     }
   }
 
-  prepareBackdrop(data, W)
 
   resetSmooth()
 
@@ -725,7 +681,6 @@ export async function recordVideoAlpha(
     }
   }
 
-  prepareBackdrop(data, W)
 
   resetSmooth()
   const audio = getAudio()
