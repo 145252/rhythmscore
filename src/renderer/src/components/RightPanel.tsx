@@ -60,6 +60,8 @@ export default function RightPanel(): React.JSX.Element {
   const setGlassBackdrop = useStore((s) => s.setGlassBackdrop)
   const glassOpacity = useStore((s) => s.glassOpacity)
   const setGlassOpacity = useStore((s) => s.setGlassOpacity)
+  const exportAudio = useStore((s) => s.exportAudio)
+  const setExportAudio = useStore((s) => s.setExportAudio)
   const [state, setState] = useState<ExportState>('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
@@ -148,7 +150,7 @@ export default function RightPanel(): React.JSX.Element {
             fps: 24,
             defaultName: projectName || '曲谱视频',
             lowQuality: !st.licensed,
-            audioDataUrl: st.audioDataUrl,
+            audioDataUrl: st.exportAudio ? st.audioDataUrl : null,
             times
           })
           if (!res || res.canceled) {
@@ -199,7 +201,8 @@ export default function RightPanel(): React.JSX.Element {
           background: st.videoBackground,
           glassBackdrop: st.glassBackdrop,
           glassOpacity: st.glassOpacity,
-          glassColor: st.removeBackground && st.invertColors ? '#10151f' : '#ffffff'
+          glassColor: st.removeBackground && st.invertColors ? '#10151f' : '#ffffff',
+          muted: !st.exportAudio
         },
         (r) => {
           // 进度按整百分比节流,避免高频 setState 拖累录制
@@ -425,6 +428,19 @@ export default function RightPanel(): React.JSX.Element {
         {videoBackground === 'transparent' && (
           <p className="hint">透明通道导出为 MOV(Animation 带 alpha + 原音轨),剪映/Premiere 可直接叠加;处理速度比 MP4 慢,需先开启「抠图」。</p>
         )}
+
+        <label className="marking-toggle" style={{ marginTop: 10 }}>
+          <span>导出声音(节拍器/伴奏)</span>
+          <input
+            type="checkbox"
+            checked={exportAudio}
+            onChange={(e) => setExportAudio(e.target.checked)}
+            disabled={busy}
+          />
+          <span className="toggle-track">
+            <span className="toggle-thumb" />
+          </span>
+        </label>
 
         <label className="marking-toggle" style={{ marginTop: 10 }}>
           <span>底层背板(衬托曲谱)</span>

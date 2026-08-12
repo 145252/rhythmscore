@@ -143,6 +143,9 @@ interface EditorState {
   /** 玻璃背板浓度(0-100%) */
   glassOpacity: number
   setGlassOpacity: (n: number) => void
+  /** 导出视频是否带声音(节拍器/音频) */
+  exportAudio: boolean
+  setExportAudio: (b: boolean) => void
   /** 导出背景:original=原样 / white / black / transparent=透明通道(WebM) */
   videoBackground: 'original' | 'white' | 'black' | 'transparent'
   setVideoBackground: (b: 'original' | 'white' | 'black' | 'transparent') => void
@@ -516,6 +519,8 @@ export const useStore = create<EditorState>((set, get) => {
   setGlassBackdrop: (b) => set({ glassBackdrop: b }),
   glassOpacity: 55,
   setGlassOpacity: (n) => set({ glassOpacity: n }),
+  exportAudio: true,
+  setExportAudio: (b) => set({ exportAudio: b }),
   videoBackground: 'original',
   setVideoBackground: (b) => set({ videoBackground: b }),
 
@@ -544,6 +549,7 @@ export const useStore = create<EditorState>((set, get) => {
       invertColors: s.removeBackground && s.invertColors ? true : undefined,
       glassBackdrop: s.glassBackdrop ? true : undefined,
       glassOpacity: s.glassBackdrop && s.glassOpacity !== 55 ? s.glassOpacity : undefined,
+      exportAudio: s.exportAudio ? undefined : false,
       videoBackground: s.videoBackground !== 'original' ? s.videoBackground : undefined,
       audio:
         s.audioDataUrl && s.audioName
@@ -573,6 +579,7 @@ export const useStore = create<EditorState>((set, get) => {
       invertColors: p.invertColors ?? false,
       glassBackdrop: p.glassBackdrop ?? false,
       glassOpacity: p.glassOpacity ?? 55,
+      exportAudio: p.exportAudio ?? true,
       videoBackground: p.videoBackground ?? 'original',
       // 恢复音频(打开后自动加载,无需重新导入)
       audioName: p.audio?.name ?? null,
@@ -615,6 +622,7 @@ export const useStore = create<EditorState>((set, get) => {
       invertColors: false,
       glassBackdrop: false,
       glassOpacity: 55,
+      exportAudio: true,
       videoBackground: 'original',
       canUndo: false,
       canRedo: false

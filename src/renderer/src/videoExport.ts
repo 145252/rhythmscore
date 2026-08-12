@@ -79,6 +79,8 @@ export interface RenderData {
   glassOpacity: number
   /** 玻璃颜色(hex) */
   glassColor: string
+  /** 静音导出:不捕获音频(导出无声音的视频) */
+  muted?: boolean
   /** 跳框模式高亮颜色 */
   jumpColor: string
   /** 跳框模式当前小节填充浓度(0~1) */
@@ -589,7 +591,8 @@ export async function recordVideo(
   // 30fps 捕获:高清全量绘制下比 60fps 稳定得多,光标不掉帧(视频标准帧率,视觉依然平滑)
   const videoStream = canvas.captureStream(30)
   const withCapture = audio as HTMLAudioElement & { captureStream?: () => MediaStream }
-  const audioStream = typeof withCapture.captureStream === 'function' ? withCapture.captureStream() : null
+  const audioStream =
+    !data.muted && typeof withCapture.captureStream === 'function' ? withCapture.captureStream() : null
   const stream = new MediaStream([
     ...videoStream.getVideoTracks(),
     ...(audioStream ? audioStream.getAudioTracks() : [])
