@@ -414,12 +414,13 @@ body {
   border-radius: 16px;
   box-shadow: 0 10px 34px rgba(30, 40, 90, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.85);
   /* 细圆角滚动条,不超出板块弧角 */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(100, 120, 160, 0.38) transparent;
+  scrollbar-width: none;
 }
 
 .side-panel::-webkit-scrollbar {
-  width: 3px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .side-panel::-webkit-scrollbar-track {
@@ -1659,8 +1660,5 @@ body.dark .lic-head {
 .collapse-card.open.ready .collapse-body{overflow-y:auto;overflow-x:hidden}
 .collapse-inner{padding:0 16px 16px}
 /* 板块内部滚动条:3px 极细,不挤内容 */
-.collapse-body{scrollbar-width:thin;scrollbar-color:rgba(100,120,160,.38) transparent}
-.collapse-body::-webkit-scrollbar{width:3px}
-.collapse-body::-webkit-scrollbar-track{background:transparent}
-.collapse-body::-webkit-scrollbar-thumb{background:rgba(100,120,160,.32);border-radius:1.5px}
-.collapse-body::-webkit-scrollbar-thumb:hover{background:rgba(100,120,160,.5)}
+.collapse-body{scrollbar-width:none}
+.collapse-body::-webkit-scrollbar{display:none;width:0;height:0}
