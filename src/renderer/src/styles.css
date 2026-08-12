@@ -1657,3 +1657,14 @@ body.dark .lic-head {
 .collapse-card.open .collapse-body{grid-template-rows:1fr}
 .collapse-inner{overflow:hidden;padding:0 16px 16px}
 .collapse-card.open .collapse-inner{padding-top:2px}
+
+/* 可折叠面板 v2:标题居中+加粗加大,收起后只显示名称;修正 0fr 行被内容撑开的问题 */
+.collapse-head{
+  width:100%;display:flex;align-items:center;justify-content:center;
+  padding:8px 12px;background:none;border:none;cursor:pointer;color:inherit;font-family:inherit;text-align:center;
+}
+.collapse-head:hover{background:rgba(255,255,255,.05)}
+.collapse-head .card-title{margin:0;font-size:15px;font-weight:600;letter-spacing:.3px}
+.collapse-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}
+.collapse-card.open .collapse-body{grid-template-rows:1fr}
+.collapse-inner{min-height:0;overflow:hidden;padding:0 16px 16px}
