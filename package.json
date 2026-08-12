@@ -1,7 +1,7 @@
 {
   "name": "rhythm-score-studio",
   "productName": "RhythmScore",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "RhythmScore - 将 PDF/JPG/PNG 鼓谱转换为可对轨、可生成动态跟随视频的桌面工作台",
   "main": "out/main/index.js",
   "author": "liuji",
