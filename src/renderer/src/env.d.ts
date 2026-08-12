@@ -39,7 +39,7 @@ interface WorkbuddyApi {
   writeAlphaFrame: (dirId: string, index: number, buffer: ArrayBuffer) => Promise<void>
   finishAlphaVideo: (
     dirId: string,
-    opts: { fps: number; defaultName: string; lowQuality: boolean; audioDataUrl?: string | null }
+    opts: { fps: number; defaultName: string; lowQuality: boolean; audioDataUrl?: string | null; times?: number[] }
   ) => Promise<{ canceled: boolean; savedPath?: string; error?: string }>
 }
 

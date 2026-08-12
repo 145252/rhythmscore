@@ -324,7 +324,7 @@ ipcMain.handle(
   async (
     _e,
     dirId: string,
-    opts: { fps: number; defaultName: string; lowQuality: boolean; audioDataUrl?: string | null }
+    opts: { fps: number; defaultName: string; lowQuality: boolean; audioDataUrl?: string | null; times?: number[] }
   ): Promise<{ canceled: boolean; savedPath?: string; error?: string }> => {
     try {
       const r = await dialog.showSaveDialog({
@@ -373,7 +373,26 @@ ipcMain.handle(
           audioDir = null
         }
       }
-      await encodeAlphaMov(dirId, opts.fps, r.filePath, audioPath, opts.lowQuality === true)
+      // 帧时间戳 → concat demuxer 列表(每帧按真实时长,VFR 对齐音画)
+      let framesList: string | null = null
+      if (opts.times && opts.times.length > 1) {
+        try {
+          const { writeFile } = await import('fs/promises')
+          const { join } = await import('path')
+          const lines: string[] = []
+          for (let i = 0; i < opts.times.length; i++) {
+            lines.push(`file '${join(dirId, `frame-${String(i).padStart(5, '0')}.png`)}'`)
+            if (i < opts.times.length - 1) {
+              lines.push(`duration ${Math.max(opts.times[i + 1] - opts.times[i], 0.02).toFixed(4)}`)
+            }
+          }
+          framesList = join(dirId, 'list.txt')
+          await writeFile(framesList, lines.join('\n'))
+        } catch {
+          framesList = null // concat 生成失败退回固定帧率
+        }
+      }
+      await encodeAlphaMov(dirId, opts.fps, r.filePath, audioPath, opts.lowQuality === true, framesList)
       // 编码完成后再清理临时目录(帧 + 音频)
       void (async () => {
         try {

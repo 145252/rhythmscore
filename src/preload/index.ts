@@ -51,7 +51,7 @@ const api = {
     ipcRenderer.invoke('video:write-frame', dirId, index, buffer),
   finishAlphaVideo: (
     dirId: string,
-    opts: { fps: number; defaultName: string; lowQuality: boolean; audioDataUrl?: string | null }
+    opts: { fps: number; defaultName: string; lowQuality: boolean; audioDataUrl?: string | null; times?: number[] }
   ): Promise<{ canceled: boolean; savedPath?: string; error?: string }> =>
     ipcRenderer.invoke('video:finish-alpha', dirId, opts)
 }

@@ -633,11 +633,11 @@ export async function blobToBase64(blob: Blob): Promise<string> {  const buf = n
   return btoa(binary)
 }
 
-/** 透明通道录制:逐帧渲染 → PNG → 写盘(串行),返回帧目录 id;由主进程编码 VP9 alpha WebM */
+/** 透明通道录制:逐帧渲染 → PNG → 写盘(串行),返回帧目录 id + 每帧时间戳;由主进程编码 Animation MOV */
 export async function recordVideoAlpha(
   data: RenderData,
   onProgress: (ratio: number) => void
-): Promise<{ dirId: string; duration: number }> {
+): Promise<{ dirId: string; duration: number; times: number[] }> {
   const { w: W, h: H } = RATIO_SIZES[data.ratio]
   const canvas = document.createElement('canvas')
   canvas.width = W
@@ -669,6 +669,7 @@ export async function recordVideoAlpha(
 
   const dirId = await window.api!.beginAlphaFrames()
   const FPS = 24
+  const times: number[] = [] // 每帧对应的真实播放时间(VFR 编码用)
   const duration = data.totalDuration
   if (duration <= 0) throw new Error('音频时长无效')
 
@@ -689,6 +690,7 @@ export async function recordVideoAlpha(
         const idx = frame
         frame++
         pending++
+        times.push(t) // 记录本帧真实播放时间(用于 VFR 编码对齐音画)
         renderFrame(ctx, W, H, t, data)
         canvas.toBlob((blob) => {
           void (async () => {
@@ -720,5 +722,5 @@ export async function recordVideoAlpha(
   })
 
   audio.pause()
-  return { dirId, duration }
+  return { dirId, duration, times }
 }

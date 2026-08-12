@@ -120,21 +120,23 @@ export async function exportVideo(
 }
 
 /**
- * 透明通道导出:帧序列 PNG + 音频 → MOV(Animation 带 alpha + AAC 音轨)。
- * 帧文件命名 frame-00001.png ...;Animation(qtrle) 是 Apple 原生透明格式,QuickTime/剪映/Premiere 通用。
+ * 透明通道导出:帧序列(+ 时间戳 VFR) + 音频 → MOV(Animation 带 alpha + AAC 音轨)。
+ * framesList 提供时用 concat demuxer(每帧按真实时间戳,音画对齐);否则按固定 framerate。
  */
 export async function encodeAlphaMov(
   framesDir: string,
   fps: number,
   destPath: string,
   audioPath: string | null,
-  _lowQuality?: boolean
+  _lowQuality?: boolean,
+  framesList?: string | null
 ): Promise<void> {
-  const args = [
-    '-y',
-    '-framerate', String(fps),
-    '-i', join(framesDir, 'frame-%05d.png')
-  ]
+  const args = ['-y']
+  if (framesList) {
+    args.push('-f', 'concat', '-safe', '0', '-i', framesList)
+  } else {
+    args.push('-framerate', String(fps), '-i', join(framesDir, 'frame-%05d.png'))
+  }
   if (audioPath) {
     args.push('-i', audioPath)
   }

@@ -93,7 +93,7 @@ export default function RightPanel(): React.JSX.Element {
       try {
         if (st.videoBackground === 'transparent') {
           // 透明通道:逐帧录制 → 主进程编码 WebM(VP9 alpha)
-          const { dirId } = await recordVideoAlpha(
+          const { dirId, times } = await recordVideoAlpha(
             {
               img,
               scoreW: st.score.width,
@@ -140,7 +140,8 @@ export default function RightPanel(): React.JSX.Element {
             fps: 24,
             defaultName: projectName || '曲谱视频',
             lowQuality: !st.licensed,
-            audioDataUrl: st.audioDataUrl
+            audioDataUrl: st.audioDataUrl,
+            times
           })
           if (!res || res.canceled) {
             setState('idle')
