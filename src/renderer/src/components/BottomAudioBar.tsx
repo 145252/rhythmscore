@@ -261,10 +261,6 @@ export default function BottomAudioBar(): React.JSX.Element {
           <div className="bar-info">
             <div className="wave-wrap" title={audioName ?? ''}>
               <canvas ref={waveRef} className="wave-canvas" onClick={onWaveClick} style={{ height: WAVE_H }} />
-              <div className="wave-time">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(audioDuration)}</span>
-              </div>
             </div>
           </div>
 
