@@ -258,13 +258,13 @@ export default function BottomAudioBar(): React.JSX.Element {
         </div>
       ) : (
         <>
-          <div className="bar-info">
-            <div className="wave-wrap" title={audioName ?? ''}>
-              <canvas ref={waveRef} className="wave-canvas" onClick={onWaveClick} style={{ height: WAVE_H }} />
+          <div className="bar-top">
+            <div className="bar-info">
+              <div className="wave-wrap" title={audioName ?? ''}>
+                <canvas ref={waveRef} className="wave-canvas" onClick={onWaveClick} style={{ height: WAVE_H }} />
+              </div>
             </div>
-          </div>
-
-          <div className="bar-controls">
+            <div className="bar-controls">
             <button className="btn icon" title="后退(跳到上一个对点小节)" onClick={() => jumpMarked(-1)}>
               <ChevronLeft size={16} />
             </button>
@@ -334,6 +334,12 @@ export default function BottomAudioBar(): React.JSX.Element {
             <button className="btn subtle" onClick={clearAudio}>
               移除音频
             </button>
+          </div>
+          </div>
+          {/* 信息条:音频名 + 时长(只在导入后显示) */}
+          <div className="bar-meta">
+            <span className="bar-meta-name" title={audioName ?? ''}>{audioName}</span>
+            <span className="bar-meta-time">{formatTime(currentTime)} / {formatTime(audioDuration)}</span>
           </div>
         </>
       )}
