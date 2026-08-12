@@ -129,6 +129,12 @@ interface EditorState {
   addBeatLine: (measureN: number, ratio: number) => void
   removeBeatLine: (measureN: number, index: number) => void
   resetBeatRatios: () => void
+  /** 抠图:去除曲谱白色背景(导出透明通道用) */
+  removeBackground: boolean
+  setRemoveBackground: (b: boolean) => void
+  /** 导出背景:original=原样 / white / black / transparent=透明通道(WebM) */
+  videoBackground: 'original' | 'white' | 'black' | 'transparent'
+  setVideoBackground: (b: 'original' | 'white' | 'black' | 'transparent') => void
   setCursorColor: (c: string) => void
   setCursorWidth: (w: number) => void
   setCursorOpacity: (o: number) => void
@@ -485,6 +491,10 @@ export const useStore = create<EditorState>((set, get) => {
     commit()
     set({ beatRatiosByMeasure: {}, dirty: true })
   },
+  removeBackground: false,
+  setRemoveBackground: (b) => set({ removeBackground: b }),
+  videoBackground: 'original',
+  setVideoBackground: (b) => set({ videoBackground: b }),
 
   setVideoMode: (m) => set({ videoMode: m }),
   setJumpColor: (c) => set({ jumpColor: c }),
@@ -507,6 +517,8 @@ export const useStore = create<EditorState>((set, get) => {
       beatsPerMeasure: s.beatSubdivision ? s.beatsPerMeasure : undefined,
       beatRatiosByMeasure:
         s.beatSubdivision && Object.keys(s.beatRatiosByMeasure).length ? s.beatRatiosByMeasure : undefined,
+      removeBackground: s.removeBackground ? true : undefined,
+      videoBackground: s.videoBackground !== 'original' ? s.videoBackground : undefined,
       audio:
         s.audioDataUrl && s.audioName
           ? { name: s.audioName, dataUrl: s.audioDataUrl }
@@ -531,6 +543,8 @@ export const useStore = create<EditorState>((set, get) => {
       beatSubdivision: p.beatSubdivision ?? false,
       beatsPerMeasure: p.beatsPerMeasure ?? 4,
       beatRatiosByMeasure: p.beatRatiosByMeasure ?? {},
+      removeBackground: p.removeBackground ?? false,
+      videoBackground: p.videoBackground ?? 'original',
       // 恢复音频(打开后自动加载,无需重新导入)
       audioName: p.audio?.name ?? null,
       audioDataUrl: p.audio?.dataUrl ?? null,
@@ -568,6 +582,8 @@ export const useStore = create<EditorState>((set, get) => {
       beatSubdivision: false,
       beatsPerMeasure: 4,
       beatRatiosByMeasure: {},
+      removeBackground: false,
+      videoBackground: 'original',
       canUndo: false,
       canRedo: false
     }),

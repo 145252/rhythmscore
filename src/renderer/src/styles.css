@@ -1632,3 +1632,13 @@ body.dark .lic-head {
   background: var(--border);
   margin: 0 4px;
 }
+
+/* 抠图模式:棋盘格示意透明背景(浅灰棋盘,深浅主题下均清晰) */
+.canvas-scroll.transparent-bg {
+  background-image: repeating-conic-gradient(#d8dde6 0% 25%, #eef1f6 0% 50%);
+  background-size: 22px 22px;
+}
+.canvas-scroll.transparent-bg .canvas-stage {
+  background-image: repeating-conic-gradient(#d8dde6 0% 25%, #eef1f6 0% 50%);
+  background-size: 22px 22px;
+}

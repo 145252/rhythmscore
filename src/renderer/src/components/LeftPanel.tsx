@@ -25,6 +25,8 @@ export default function LeftPanel(): React.JSX.Element {
   const beatSubdivision = useStore((s) => s.beatSubdivision)
   const setBeatSubdivision = useStore((s) => s.setBeatSubdivision)
   const resetBeatRatios = useStore((s) => s.resetBeatRatios)
+  const removeBackground = useStore((s) => s.removeBackground)
+  const setRemoveBackground = useStore((s) => s.setRemoveBackground)
 
   const tools = [
     { id: 'hline' as const, icon: <Minus size={16} />, label: '横线' },
@@ -72,6 +74,27 @@ export default function LeftPanel(): React.JSX.Element {
               清空全部拍线
             </button>
           </>
+        )}
+
+        {/* 背景抠图:去除白色背景,导出透明通道用 */}
+        <p className="label" style={{ marginTop: 12 }}>
+          背景抠图
+        </p>
+        <label className="marking-toggle">
+          <span>抠图(去除白色背景)</span>
+          <input
+            type="checkbox"
+            checked={removeBackground}
+            onChange={(e) => setRemoveBackground(e.target.checked)}
+          />
+          <span className="toggle-track">
+            <span className="toggle-thumb" />
+          </span>
+        </label>
+        {removeBackground && (
+          <p className="hint">
+            去除纸张背景,谱面透明区域以棋盘格示意;导出时可选「透明通道」输出 WebM,方便叠加到教学视频。
+          </p>
         )}
 
         <div className="line-width-row">

@@ -4,6 +4,8 @@ export interface ScoreSource {
   path?: string
   /** 合并后的长图 dataURL(多页/多文件垂直拼接) */
   dataUrl: string
+  /** 抠图后的透明背景 dataURL(去除白色背景;未处理时为空) */
+  transparentDataUrl?: string
   /** 合并图原始像素宽高(坐标基准) */
   width: number
   height: number
@@ -57,6 +59,10 @@ export interface ProjectFile {
   beatSubdivision?: boolean
   beatsPerMeasure?: number
   beatRatiosByMeasure?: Record<number, number[]>
+  /** 抠图(去除白色背景) */
+  removeBackground?: boolean
+  /** 导出背景:original/white/black/transparent */
+  videoBackground?: 'original' | 'white' | 'black' | 'transparent'
   /** 音频内容(随项目保存,打开后自动恢复,无需重新导入) */
   audio?: { name: string; dataUrl: string } | null
 }

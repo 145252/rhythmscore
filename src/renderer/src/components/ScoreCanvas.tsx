@@ -6,6 +6,7 @@ import { loadPdfDoc, renderPdfPageDoc } from '../pdf'
 import { mergePages, type PageImage } from '../merge'
 import { getAudio } from '../audioPlayer'
 import { ballPos, beatCursorRatio, beatRatiosFor, buildMeasures, eventAtTime, measureAtTime, trailRegions } from '../videoExport'
+import { removeWhiteBackground } from '../removeBackground'
 import { detectMeasureLines } from '../scoreDetect'
 import type { ScoreSource } from '../types'
 
@@ -121,6 +122,9 @@ export default function ScoreCanvas(): React.JSX.Element {
   const setBeatRatio = useStore((s) => s.setBeatRatio)
   const addBeatLine = useStore((s) => s.addBeatLine)
   const removeBeatLine = useStore((s) => s.removeBeatLine)
+  const removeBackground = useStore((s) => s.removeBackground)
+  /** 显示源:抠图开启且有透明版时用透明图 */
+  const displayUrl = score && removeBackground && score.transparentDataUrl ? score.transparentDataUrl : score ? score.dataUrl : ''
   const markLineColor = useStore((s) => s.markLineColor)
   const videoMode = useStore((s) => s.videoMode)
   const jumpColor = useStore((s) => s.jumpColor)
@@ -252,7 +256,26 @@ export default function ScoreCanvas(): React.JSX.Element {
 
   useEffect(() => {
     if (score) fitWidth()
-  }, [score?.dataUrl, fitWidth])
+  }, [displayUrl, fitWidth])
+
+  // 抠图:开启时对当前曲谱执行去白底(异步,完成后写入 transparentDataUrl)
+  useEffect(() => {
+    if (!score || !removeBackground || score.transparentDataUrl) return
+    let cancel = false
+    void (async () => {
+      const img = await loadImageEl(score.dataUrl).catch(() => null)
+      if (cancel || !img) return
+      try {
+        const tUrl = await removeWhiteBackground(img)
+        if (!cancel) setScore({ ...score, transparentDataUrl: tUrl })
+      } catch {
+        /* 抠图失败忽略,保持原图 */
+      }
+    })()
+    return () => {
+      cancel = true
+    }
+  }, [score, removeBackground, setScore])
 
   const zoomBy = useCallback((factor: number) => {
     const st = useStore.getState()
@@ -802,7 +825,7 @@ export default function ScoreCanvas(): React.JSX.Element {
 
       <div
         ref={scrollRef}
-        className={`canvas-scroll ${dragOver ? 'drag-over' : ''}`}
+        className={`canvas-scroll ${dragOver ? 'drag-over' : ''} ${removeBackground ? 'transparent-bg' : ''}`}
         style={{ cursor }}
         onMouseDown={onMouseDown}
         onMouseMove={onMouseMove}
@@ -836,7 +859,7 @@ export default function ScoreCanvas(): React.JSX.Element {
             <div style={{ position: 'relative', width: '100%' }}>
               <img
                 ref={imgRef}
-                src={score.dataUrl}
+                src={displayUrl}
                 draggable={false}
                 style={{ display: 'block', width: '100%', pointerEvents: 'none' }}
                 alt="曲谱"

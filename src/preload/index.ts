@@ -44,7 +44,16 @@ const api = {
   getMachineCode: (): Promise<string> => ipcRenderer.invoke('license:get-machine'),
   /** 验证激活码:成功返回 ok=true,失败 ok=false */
   activateLicense: (key: string): Promise<{ ok: boolean; machine: string }> =>
-    ipcRenderer.invoke('license:activate', key)
+    ipcRenderer.invoke('license:activate', key),
+  /** 透明导出:开始帧序列会话(返回临时目录 id) */
+  beginAlphaFrames: (): Promise<string> => ipcRenderer.invoke('video:begin-frames'),
+  writeAlphaFrame: (dirId: string, index: number, buffer: ArrayBuffer): Promise<void> =>
+    ipcRenderer.invoke('video:write-frame', dirId, index, buffer),
+  finishAlphaVideo: (
+    dirId: string,
+    opts: { fps: number; defaultName: string; lowQuality: boolean }
+  ): Promise<{ canceled: boolean; savedPath?: string; error?: string }> =>
+    ipcRenderer.invoke('video:finish-alpha', dirId, opts)
 }
 
 contextBridge.exposeInMainWorld('api', api)

@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, shell, Menu, type MenuItemConstruc
 import { join, basename, extname } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto'
-import { exportVideo, type SegmentSpec } from './ffmpeg'
+import { exportVideo, encodeAlphaWebm, type SegmentSpec } from './ffmpeg'
 import { machineCode, verifyLicense, verifyIntegrity } from './license'
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL
@@ -299,6 +299,51 @@ ipcMain.handle(
       if (r.canceled || !r.filePath) return { canceled: true }
       const res = await exportVideo(buf, r.filePath, null, [], opts)
       return { canceled: false, ...res }
+    } catch (err) {
+      return { canceled: false, error: err instanceof Error ? err.message : String(err) }
+    }
+  }
+)
+
+// ---------- IPC: 透明导出(帧序列 → VP9 alpha WebM) ----------
+ipcMain.handle('video:begin-frames', async () => {
+  const { mkdtemp } = await import('fs/promises')
+  const { join } = await import('path')
+  const { tmpdir } = await import('os')
+  return mkdtemp(join(tmpdir(), 'rs-alpha-'))
+})
+
+ipcMain.handle('video:write-frame', async (_e, dirId: string, index: number, buffer: ArrayBuffer) => {
+  const { writeFile } = await import('fs/promises')
+  const { join } = await import('path')
+  await writeFile(join(dirId, `frame-${String(index).padStart(5, '0')}.png`), Buffer.from(buffer))
+})
+
+ipcMain.handle(
+  'video:finish-alpha',
+  async (
+    _e,
+    dirId: string,
+    opts: { fps: number; defaultName: string; lowQuality: boolean }
+  ): Promise<{ canceled: boolean; savedPath?: string; error?: string }> => {
+    try {
+      const r = await dialog.showSaveDialog({
+        title: '保存透明视频(WebM, 可叠加)',
+        defaultPath: `${opts.defaultName}-透明.webm`,
+        filters: [{ name: 'WebM 视频(透明通道)', extensions: ['webm'] }]
+      })
+      if (r.canceled || !r.filePath) return { canceled: true }
+      await encodeAlphaWebm(dirId, opts.fps, r.filePath, opts.lowQuality === true)
+      // 清理帧临时目录(异步)
+      void (async () => {
+        try {
+          const { rm } = await import('fs/promises')
+          await rm(dirId, { recursive: true, force: true })
+        } catch {
+          /* ignore */
+        }
+      })()
+      return { canceled: false, savedPath: r.filePath }
     } catch (err) {
       return { canceled: false, error: err instanceof Error ? err.message : String(err) }
     }

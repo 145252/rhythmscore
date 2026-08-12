@@ -34,6 +34,13 @@ interface WorkbuddyApi {
   onMenuAction: (cb: (action: 'open-project' | 'save-project') => void) => void
   getMachineCode: () => Promise<string>
   activateLicense: (key: string) => Promise<{ ok: boolean; machine: string }>
+  /** 透明导出:开始帧序列会话(返回临时目录 id) */
+  beginAlphaFrames: () => Promise<string>
+  writeAlphaFrame: (dirId: string, index: number, buffer: ArrayBuffer) => Promise<void>
+  finishAlphaVideo: (
+    dirId: string,
+    opts: { fps: number; defaultName: string; lowQuality: boolean }
+  ) => Promise<{ canceled: boolean; savedPath?: string; error?: string }>
 }
 
 interface Window {

@@ -71,6 +71,8 @@ export interface RenderData {
   cursorBall: boolean
   /** 免费版:导出时叠加动态移动水印(专业版 false) */
   watermark: boolean
+  /** 视频背景:original=原样 / white / black / transparent=透明通道(WebM) */
+  background: 'original' | 'white' | 'black' | 'transparent'
   /** 跳框模式高亮颜色 */
   jumpColor: string
   /** 跳框模式当前小节填充浓度(0~1) */
@@ -240,9 +242,11 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
   const offsetX = smoothX
   const offsetY = smoothY
 
-  // ---- 背景 ----
-  ctx.fillStyle = '#f4f4f1'
-  ctx.fillRect(0, 0, W, H)
+  // ---- 背景(透明通道时不填充,保留 alpha) ----
+  if (data.background !== 'transparent') {
+    ctx.fillStyle = data.background === 'black' ? '#000' : data.background === 'white' ? '#fff' : '#f4f4f1'
+    ctx.fillRect(0, 0, W, H)
+  }
 
   // ---- 曲谱 ----
   ctx.imageSmoothingEnabled = true
@@ -543,8 +547,10 @@ export async function recordVideo(
     pre.height = preH
     const pctx = pre.getContext('2d')
     if (pctx) {
-      pctx.fillStyle = '#ffffff'
-      pctx.fillRect(0, 0, W, preH)
+      if (data.background !== 'transparent') {
+        pctx.fillStyle = '#ffffff'
+        pctx.fillRect(0, 0, W, preH)
+      }
       pctx.drawImage(data.img, 0, 0, data.scoreW, data.scoreH, 0, 0, W, preH)
       data.pre = pre
     }
@@ -619,4 +625,94 @@ export async function blobToBase64(blob: Blob): Promise<string> {
     binary += String.fromCharCode(...buf.subarray(i, i + CHUNK))
   }
   return btoa(binary)
+}
+
+/** 透明通道录制:逐帧渲染 → PNG → 写盘(串行),返回帧目录 id;由主进程编码 VP9 alpha WebM */
+export async function recordVideoAlpha(
+  data: RenderData,
+  onProgress: (ratio: number) => void
+): Promise<{ dirId: string; duration: number }> {
+  const { w: W, h: H } = RATIO_SIZES[data.ratio]
+  const canvas = document.createElement('canvas')
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('无法创建画布')
+
+  // 非单行:预渲染整图(透明时不含白色背景)
+  if (data.ratio !== '单行') {
+    const scale = W / data.scoreW
+    const preH = Math.max(1, Math.round(data.scoreH * scale))
+    const pre = document.createElement('canvas')
+    pre.width = W
+    pre.height = preH
+    const pctx = pre.getContext('2d')
+    if (pctx) {
+      if (data.background !== 'transparent') {
+        pctx.fillStyle = '#ffffff'
+        pctx.fillRect(0, 0, W, preH)
+      }
+      pctx.drawImage(data.img, 0, 0, data.scoreW, data.scoreH, 0, 0, W, preH)
+      data.pre = pre
+    }
+  }
+
+  resetSmooth()
+  const audio = getAudio()
+  audio.currentTime = 0
+
+  const dirId = await window.api!.beginAlphaFrames()
+  const FPS = 24
+  const duration = data.totalDuration
+  if (duration <= 0) throw new Error('音频时长无效')
+
+  await audio.play()
+
+  await new Promise<void>((resolve) => {
+    let frame = 0
+    let last = 0
+    let pending = 0
+    let done = false
+    const finish = (): void => {
+      if (done && pending === 0) resolve()
+    }
+    const loop = (ts: number): void => {
+      const t = audio.currentTime
+      if (ts - last >= 1000 / FPS) {
+        last = ts
+        const idx = frame
+        frame++
+        pending++
+        renderFrame(ctx, W, H, t, data)
+        canvas.toBlob((blob) => {
+          void (async () => {
+            try {
+              if (blob) {
+                const buf = await blob.arrayBuffer()
+                await window.api!.writeAlphaFrame(dirId, idx, buf)
+              }
+            } catch {
+              /* 单帧失败跳过 */
+            } finally {
+              pending--
+              finish()
+            }
+          })()
+        }, 'image/png')
+        onProgress(Math.min(t / duration, 1))
+      }
+      if (audio.ended || t >= duration - 0.05) {
+        done = true
+        finish()
+        return
+      }
+      requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+    // 兜底:最后一帧写盘超时强制结束
+    setTimeout(() => resolve(), Math.ceil(duration * 1000) + 30000)
+  })
+
+  audio.pause()
+  return { dirId, duration }
 }

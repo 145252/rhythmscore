@@ -6,6 +6,7 @@ import {
   blobToBase64,
   RATIO_SIZES,
   recordVideo,
+  recordVideoAlpha,
   type FollowMode,
   type VideoRatio
 } from '../videoExport'
@@ -52,6 +53,8 @@ export default function RightPanel(): React.JSX.Element {
 
   const [ratio, setRatio] = useState<VideoRatio>('16:9')
   const [split, setSplit] = useState(false) // 默认不导出小节切片,避免生成一堆"小节N.mp4"
+  const videoBackground = useStore((s) => s.videoBackground)
+  const setVideoBackground = useStore((s) => s.setVideoBackground)
   const [state, setState] = useState<ExportState>('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
@@ -74,7 +77,9 @@ export default function RightPanel(): React.JSX.Element {
     }
 
     const img = new Image()
-    img.src = st.score.dataUrl
+    // 抠图开启且有透明版 → 用透明图作为导出源(背景由 videoBackground 控制)
+    img.src =
+      st.removeBackground && st.score.transparentDataUrl ? st.score.transparentDataUrl : st.score.dataUrl
     await img.decode().catch(() => undefined)
 
     const measures = buildMeasures(st.hLines, st.vLines, st.score.width, st.score.height)
@@ -82,10 +87,73 @@ export default function RightPanel(): React.JSX.Element {
     const leftBorder = fullXs.length ? Math.min(...fullXs) : 0
     const rightBorder = fullXs.length ? Math.max(...fullXs) : st.score.width
 
-    setState('recording')
-    setProgress(0)
-    setMessage('')
-    try {
+      setState('recording')
+      setProgress(0)
+      setMessage('')
+      try {
+        if (st.videoBackground === 'transparent') {
+          // 透明通道:逐帧录制 → 主进程编码 WebM(VP9 alpha)
+          const { dirId } = await recordVideoAlpha(
+            {
+              img,
+              scoreW: st.score.width,
+              scoreH: st.score.height,
+              hLines: st.hLines,
+              vLines: st.vLines,
+              lineWidth: st.lineWidth,
+              markLineColor: st.markLineColor,
+              leftBorder,
+              rightBorder,
+              measures,
+              events: st.markEvents,
+              totalDuration: st.audioDuration,
+              mode,
+              ratio,
+              showAnnotations: false,
+              cursorColor,
+              cursorWidth,
+              cursorOpacity,
+              cursorTrail,
+              cursorTrailOpacity,
+              cursorTrailRange,
+              cursorBall: st.cursorBall,
+              beatSubdivision: st.beatSubdivision,
+              beatsPerMeasure: st.beatsPerMeasure,
+              beatRatiosByMeasure: st.beatRatiosByMeasure,
+              jumpColor,
+              jumpOpacity,
+              nextColor,
+              nextOpacity,
+              watermark: !st.licensed,
+              background: 'transparent'
+            },
+            (r) => {
+              const pct = Math.floor(r * 100)
+              if (pct !== lastPctRef.current) {
+                lastPctRef.current = pct
+                setProgress(pct / 100)
+              }
+            }
+          )
+          setState('converting')
+          const res = await window.api.finishAlphaVideo(dirId, {
+            fps: 24,
+            defaultName: projectName || '曲谱视频',
+            lowQuality: !st.licensed
+          })
+          if (!res || res.canceled) {
+            setState('idle')
+            return
+          }
+          if (res.error) {
+            setMessage(res.error)
+            setState('error')
+            return
+          }
+          setMessage(`已导出(透明通道):${res.savedPath ?? ''}`)
+          setState('done')
+          return
+        }
       const { blob } = await recordVideo(
         {
           img,
@@ -117,7 +185,8 @@ export default function RightPanel(): React.JSX.Element {
           jumpOpacity,
           nextColor,
           nextOpacity,
-          watermark: !st.licensed // 未激活:导出叠加动态水印
+          watermark: !st.licensed, // 未激活:导出叠加动态水印
+          background: st.videoBackground
         },
         (r) => {
           // 进度按整百分比节流,避免高频 setState 拖累录制
@@ -331,6 +400,29 @@ export default function RightPanel(): React.JSX.Element {
           {RATIO_SIZES[ratio].w} × {RATIO_SIZES[ratio].h} · 单行=只显示当前行 · 连滚=整谱滚动
         </p>
 
+        <p className="label">视频背景</p>
+        <div className="ratio-grid">
+          {(
+            [
+              ['original', '原样'],
+              ['white', '白色'],
+              ['black', '黑色'],
+              ['transparent', '透明通道']
+            ] as const
+          ).map(([v, label]) => (
+            <span
+              key={v}
+              className={`chip ${videoBackground === v ? 'active' : ''}`}
+              onClick={() => !busy && setVideoBackground(v)}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+        {videoBackground === 'transparent' && (
+          <p className="hint">透明通道导出为 WebM(VP9 带 alpha),剪映/Premiere 等可直接叠加;处理速度比 MP4 慢。需先开启「抠图」。</p>
+        )}
+
         <label className="split-opt">
           <input type="checkbox" checked={split} onChange={(e) => setSplit(e.target.checked)} disabled={busy || mode !== 'jump'} />
           同时导出每小节独立片段(跳框模式)
@@ -352,7 +444,11 @@ export default function RightPanel(): React.JSX.Element {
         {state === 'converting' && (
           <div className="export-progress">
             <div className="progress-bar indeterminate" />
-            <span className="progress-text">正在转码 MP4 并混入音频…</span>
+            <span className="progress-text">
+              {videoBackground === 'transparent'
+                ? '正在编码透明通道 WebM…'
+                : '正在转码 MP4 并混入音频…'}
+            </span>
           </div>
         )}
         {state === 'done' && (
