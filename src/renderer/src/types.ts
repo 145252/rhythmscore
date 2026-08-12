@@ -65,6 +65,10 @@ export interface ProjectFile {
   removeBackground?: boolean
   /** 反色(黑音符→白音符,需配合抠图) */
   invertColors?: boolean
+  /** 玻璃背板:曲谱内容下方垫半透明玻璃板(衬托曲谱) */
+  glassBackdrop?: boolean
+  /** 玻璃背板浓度(0-100) */
+  glassOpacity?: number
   /** 导出背景:original/white/black/transparent */
   videoBackground?: 'original' | 'white' | 'black' | 'transparent'
   /** 音频内容(随项目保存,打开后自动恢复,无需重新导入) */

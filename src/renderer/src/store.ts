@@ -135,6 +135,12 @@ interface EditorState {
   /** 反色:黑音符/五线谱 → 白(配合抠图,适合深色背景叠加) */
   invertColors: boolean
   setInvertColors: (b: boolean) => void
+  /** 玻璃背板:黑谱→白玻璃 / 白谱→黑玻璃(衬托曲谱) */
+  glassBackdrop: boolean
+  setGlassBackdrop: (b: boolean) => void
+  /** 玻璃背板浓度(0-100%) */
+  glassOpacity: number
+  setGlassOpacity: (n: number) => void
   /** 导出背景:original=原样 / white / black / transparent=透明通道(WebM) */
   videoBackground: 'original' | 'white' | 'black' | 'transparent'
   setVideoBackground: (b: 'original' | 'white' | 'black' | 'transparent') => void
@@ -498,6 +504,10 @@ export const useStore = create<EditorState>((set, get) => {
   setRemoveBackground: (b) => set({ removeBackground: b }),
   invertColors: false,
   setInvertColors: (b) => set({ invertColors: b }),
+  glassBackdrop: false,
+  setGlassBackdrop: (b) => set({ glassBackdrop: b }),
+  glassOpacity: 55,
+  setGlassOpacity: (n) => set({ glassOpacity: n }),
   videoBackground: 'original',
   setVideoBackground: (b) => set({ videoBackground: b }),
 
@@ -524,6 +534,8 @@ export const useStore = create<EditorState>((set, get) => {
         s.beatSubdivision && Object.keys(s.beatRatiosByMeasure).length ? s.beatRatiosByMeasure : undefined,
       removeBackground: s.removeBackground ? true : undefined,
       invertColors: s.removeBackground && s.invertColors ? true : undefined,
+      glassBackdrop: s.glassBackdrop ? true : undefined,
+      glassOpacity: s.glassBackdrop && s.glassOpacity !== 55 ? s.glassOpacity : undefined,
       videoBackground: s.videoBackground !== 'original' ? s.videoBackground : undefined,
       audio:
         s.audioDataUrl && s.audioName
@@ -551,6 +563,8 @@ export const useStore = create<EditorState>((set, get) => {
       beatRatiosByMeasure: p.beatRatiosByMeasure ?? {},
       removeBackground: p.removeBackground ?? false,
       invertColors: p.invertColors ?? false,
+      glassBackdrop: p.glassBackdrop ?? false,
+      glassOpacity: p.glassOpacity ?? 55,
       videoBackground: p.videoBackground ?? 'original',
       // 恢复音频(打开后自动加载,无需重新导入)
       audioName: p.audio?.name ?? null,
@@ -591,6 +605,8 @@ export const useStore = create<EditorState>((set, get) => {
       beatRatiosByMeasure: {},
       removeBackground: false,
       invertColors: false,
+      glassBackdrop: false,
+      glassOpacity: 55,
       videoBackground: 'original',
       canUndo: false,
       canRedo: false

@@ -55,6 +55,10 @@ export default function RightPanel(): React.JSX.Element {
   const [split, setSplit] = useState(false) // 默认不导出小节切片,避免生成一堆"小节N.mp4"
   const videoBackground = useStore((s) => s.videoBackground)
   const setVideoBackground = useStore((s) => s.setVideoBackground)
+  const glassBackdrop = useStore((s) => s.glassBackdrop)
+  const setGlassBackdrop = useStore((s) => s.setGlassBackdrop)
+  const glassOpacity = useStore((s) => s.glassOpacity)
+  const setGlassOpacity = useStore((s) => s.setGlassOpacity)
   const [state, setState] = useState<ExportState>('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
@@ -125,7 +129,10 @@ export default function RightPanel(): React.JSX.Element {
               nextColor,
               nextOpacity,
               watermark: !st.licensed,
-              background: 'transparent'
+              background: 'transparent',
+              glassBackdrop: st.glassBackdrop,
+              glassOpacity: st.glassOpacity,
+              glassColor: st.removeBackground && st.invertColors ? '#10151f' : '#ffffff'
             },
             (r) => {
               const pct = Math.floor(r * 100)
@@ -188,7 +195,10 @@ export default function RightPanel(): React.JSX.Element {
           nextColor,
           nextOpacity,
           watermark: !st.licensed, // 未激活:导出叠加动态水印
-          background: st.videoBackground
+          background: st.videoBackground,
+          glassBackdrop: st.glassBackdrop,
+          glassOpacity: st.glassOpacity,
+          glassColor: st.removeBackground && st.invertColors ? '#10151f' : '#ffffff'
         },
         (r) => {
           // 进度按整百分比节流,避免高频 setState 拖累录制
@@ -423,6 +433,36 @@ export default function RightPanel(): React.JSX.Element {
         </div>
         {videoBackground === 'transparent' && (
           <p className="hint">透明通道导出为 MOV(Animation 带 alpha + 原音轨),剪映/Premiere 可直接叠加;处理速度比 MP4 慢,需先开启「抠图」。</p>
+        )}
+
+        <label className="marking-toggle" style={{ marginTop: 10 }}>
+          <span>玻璃背板(衬托曲谱)</span>
+          <input
+            type="checkbox"
+            checked={glassBackdrop}
+            onChange={(e) => setGlassBackdrop(e.target.checked)}
+            disabled={busy}
+          />
+          <span className="toggle-track">
+            <span className="toggle-thumb" />
+          </span>
+        </label>
+        {glassBackdrop && (
+          <>
+            <div className="line-width-row">
+              <span>浓度</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={glassOpacity}
+                onChange={(e) => setGlassOpacity(Number(e.target.value))}
+                disabled={busy}
+              />
+              <span className="lv">{glassOpacity}%</span>
+            </div>
+            <p className="hint">在谱面内容下方垫半透明玻璃板(黑谱自动配白色玻璃,白谱配深色玻璃),合成视频时曲谱更清晰。</p>
+          </>
         )}
 
         <label className="split-opt">
