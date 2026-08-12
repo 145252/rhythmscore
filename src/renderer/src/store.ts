@@ -100,6 +100,8 @@ interface EditorState {
   removeMarkEvent: (idx: number) => void
   /** 清除所有对点 */
   clearMarkEvents: () => void
+  /** 批量设置对点(节拍器自动对点用) */
+  setMarkEvents: (events: MarkEvent[]) => void
   setMarking: (b: boolean) => void
   setMarkingNext: (n: number | null) => void
 
@@ -412,6 +414,11 @@ export const useStore = create<EditorState>((set, get) => {
   clearMarkEvents: () => {
     commit()
     set({ markEvents: [], currentMeasure: null, markingNext: null, dirty: true })
+  },
+  setMarkEvents: (events) => {
+    commit()
+    const sorted = [...events].sort((a, b) => a.time - b.time)
+    set({ markEvents: sorted, currentMeasure: null, markingNext: null, dirty: true })
   },
   adjustMarkEventByIndex: (idx, delta) => {
     commit()

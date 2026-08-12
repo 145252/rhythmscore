@@ -8,8 +8,10 @@ export type MetronomeSound = 'wood' | 'beep' | 'digital'
 export interface MetronomeOptions {
   bpm: number
   beatsPerMeasure: number
-  /** 小节数(含预备小节) */
+  /** 正文小节数 */
   measures: number
+  /** 预备小节数(音频开头预卷,默认 1) */
+  prepMeasures?: number
   sound: MetronomeSound
 }
 
@@ -82,10 +84,11 @@ function bufferToWavDataUrl(buffer: AudioBuffer): Promise<string> {
   })
 }
 
-/** 生成节拍器音频(含预备小节在内共 measures 小节) */
+/** 生成节拍器音频(含预备小节预卷,总时长 = (prep + measures) 小节) */
 export async function generateMetronomeAudio(opts: MetronomeOptions): Promise<string> {
   const beatDur = 60 / opts.bpm
-  const totalBeats = Math.max(1, Math.round(opts.measures * opts.beatsPerMeasure))
+  const prep = opts.prepMeasures ?? 1
+  const totalBeats = Math.max(1, Math.round((prep + opts.measures) * opts.beatsPerMeasure))
   const duration = totalBeats * beatDur + 0.3
   const sampleRate = 44100
   const Ctx =
