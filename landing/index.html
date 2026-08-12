@@ -210,6 +210,21 @@
   .price .btn.soon{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:var(--ink2);cursor:default}
   .buy-note{max-width:860px;margin:26px auto 0;text-align:center;color:var(--ink3);font-size:13px}
 
+  /* 联系我们 */
+  .contact{max-width:860px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;
+    padding:50px 40px;border-radius:24px;
+    background:linear-gradient(160deg,rgba(75,231,180,.08),rgba(75,152,231,.06));
+    border:1px solid rgba(75,231,180,.22)}
+  .contact h3{font-size:24px;font-weight:700;margin-bottom:10px}
+  .contact p{color:var(--ink2);font-size:14.5px;margin-bottom:14px}
+  .contact .info-row{display:flex;gap:12px;align-items:center;padding:8px 0;font-size:14px;color:var(--ink)}
+  .contact .info-row b{color:#9cc8ff;font-weight:600;margin-right:8px}
+  .contact .qr{width:240px;height:240px;margin:0 auto;padding:16px;border-radius:20px;background:#fff;
+    box-shadow:0 20px 50px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.6)}
+  .contact .qr img{width:100%;height:100%;display:block}
+  .contact .qr-cap{text-align:center;margin-top:14px;font-size:13px;color:var(--ink2)}
+  .contact .qr-cap b{color:#fff;font-weight:600}
+
   /* 下载 */
   .dl-card{max-width:860px;margin:0 auto;padding:50px 40px;border-radius:24px;text-align:center;
     background:linear-gradient(160deg,rgba(90,100,255,.14),rgba(255,90,140,.06));
@@ -244,7 +259,7 @@
 <nav>
   <div class="logo"><img src="logo.png" alt="RhythmScore"><span>RhythmScore</span> <span style="font-weight:400;color:var(--ink3);font-size:13px">律谱</span></div>
   <div class="menu">
-    <a href="#pain">痛点</a><a href="#showcase">界面</a><a href="#smart">功能</a><a href="#guide">教程</a><a href="#buy">购买</a>
+    <a href="#pain">痛点</a><a href="#showcase">界面</a><a href="#smart">功能</a><a href="#guide">教程</a><a href="#buy">购买</a><a href="#contact">联系</a>
   </div>
   <a class="cta" href="#download">免费下载</a>
 </nav>
@@ -454,6 +469,31 @@
       </div>
     </div>
     <p class="buy-note reveal">定价与售卖方式仍在确定中，先免费下载体验，正式发售时官网会第一时间公布。</p>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="wrap">
+    <div class="contact reveal">
+      <div>
+        <h3>想提前拿到正式版 / 商务合作？</h3>
+        <p>正式发售前想试用完整功能、团队采购、定制开发，请直接联系我们 —— 24 小时内回复。</p>
+        <div class="info-row">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:rgba(75,152,231,.15);border:1px solid rgba(75,152,231,.3)">✉</span>
+          <span><b>邮箱</b>1452523543@qq.com</span>
+        </div>
+        <div class="info-row">
+          <span style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:rgba(75,231,140,.15);border:1px solid rgba(75,231,140,.3)">💬</span>
+          <span><b>微信</b>扫码添加（见右侧）</span>
+        </div>
+      </div>
+      <div>
+        <div class="qr">
+          <img src="wechat-qr.jpg" alt="微信二维码">
+        </div>
+        <div class="qr-cap">扫一扫加<b>微信</b>，备注「RhythmScore」</div>
+      </div>
+    </div>
   </div>
 </section>
 
