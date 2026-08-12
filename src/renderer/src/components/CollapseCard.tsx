@@ -1,4 +1,5 @@
 import React, { useState, type ReactNode } from 'react'
+import { ChevronDown } from 'lucide-react'
 
 interface CollapseCardProps {
   title: string
@@ -7,7 +8,7 @@ interface CollapseCardProps {
   children: ReactNode
 }
 
-/** 可折叠面板:点击标题栏展开/收起,收起后仅剩居中的标题条 */
+/** 可折叠面板:点击标题栏展开/收起,收起后仅剩居中的标题条 + 箭头 */
 export default function CollapseCard({
   title,
   defaultOpen = false,
@@ -23,6 +24,7 @@ export default function CollapseCard({
         title={open ? '收起' : '展开'}
       >
         <h3 className="card-title">{title}</h3>
+        <ChevronDown size={15} className={`collapse-arrow ${open ? 'rot' : ''}`} />
       </button>
       <div className={`collapse-body ${open ? 'open' : ''}`}>
         <div className="collapse-inner">{children}</div>

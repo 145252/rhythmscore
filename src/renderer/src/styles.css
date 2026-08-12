@@ -1646,11 +1646,13 @@ body.dark .lic-head {
 /* 可折叠面板:标题居中加粗,收起仅剩标题条;max-height 动画(构建压缩下稳定,不依赖 grid 0fr) */
 .collapse-card{padding:0}
 .collapse-head{
-  width:100%;display:flex;align-items:center;justify-content:center;
+  width:100%;display:flex;align-items:center;justify-content:center;gap:6px;
   padding:8px 12px;background:none;border:none;cursor:pointer;color:inherit;font-family:inherit;text-align:center;
 }
 .collapse-head:hover{background:rgba(255,255,255,.05)}
 .collapse-head .card-title{margin:0;font-size:15px;font-weight:600;letter-spacing:.3px}
-.collapse-body{max-height:0;overflow:hidden;transition:max-height .32s ease}
+.collapse-arrow{color:var(--ink3);flex:none;transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.collapse-arrow.rot{transform:rotate(180deg)}
+.collapse-body{max-height:0;overflow:hidden;transition:max-height .5s cubic-bezier(.33,1,.68,1)}
 .collapse-card.open .collapse-body{max-height:1400px}
 .collapse-inner{padding:0 16px 16px}
