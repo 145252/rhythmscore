@@ -1654,5 +1654,7 @@ body.dark .lic-head {
 .collapse-arrow{color:var(--ink3);flex:none;transition:transform .35s cubic-bezier(.4,0,.2,1)}
 .collapse-arrow.rot{transform:rotate(180deg)}
 .collapse-body{max-height:0;overflow:hidden;transition:max-height .5s cubic-bezier(.33,1,.68,1)}
-.collapse-card.open .collapse-body{max-height:calc(100vh - 170px);overflow-y:auto;overflow-x:hidden}
+.collapse-card.open .collapse-body{max-height:calc(100vh - 170px)}
+/* 展开动画结束后(JS ready)才启用内部滚动,避免动画中滚动条闪现 */
+.collapse-card.open.ready .collapse-body{overflow-y:auto;overflow-x:hidden}
 .collapse-inner{padding:0 16px 16px}

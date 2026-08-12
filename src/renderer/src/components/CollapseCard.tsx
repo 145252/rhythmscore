@@ -1,4 +1,4 @@
-import React, { useState, type ReactNode } from 'react'
+import React, { useEffect, useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 
 interface CollapseCardProps {
@@ -15,8 +15,17 @@ export default function CollapseCard({
   children
 }: CollapseCardProps): React.JSX.Element {
   const [open, setOpen] = useState(defaultOpen)
+  // 动画结束后才启用内部滚动,避免展开过程中滚动条闪现/抖动
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if (open) {
+      const t = setTimeout(() => setReady(true), 480)
+      return () => clearTimeout(t)
+    }
+    setReady(false)
+  }, [open])
   return (
-    <div className={`card collapse-card ${open ? 'open' : ''}`}>
+    <div className={`card collapse-card ${open ? 'open' : ''} ${open && ready ? 'ready' : ''}`}>
       <button
         type="button"
         className="collapse-head"
