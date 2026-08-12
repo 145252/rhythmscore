@@ -259,11 +259,10 @@
     animation:shine 7s ease-in-out infinite}
   @keyframes shine{0%,58%{left:-50%}100%{left:140%}}
 
-  /* 截图不强制等高,按原比例展示,错落排布 */
+  /* 截图不强制等高,按原比例展示,上下正常拼接(第3张接第1张下、第4张接第2张下) */
   .showcase{align-items:start}
   .showcase .shot img,.showcase-row .shot img{height:auto}
-  .showcase .shot:nth-child(2){margin-top:48px}
-  .showcase-row .shot:nth-child(2){margin-top:48px}
+  .showcase,.showcase-row{max-width:1040px;margin-left:auto;margin-right:auto}
 
   /* 板块 hover 放大 + 辉光 */
   .card{transition:transform .3s,border-color .3s,box-shadow .3s}
@@ -288,6 +287,13 @@
     .menu{display:none}
     .step .arr{display:none}
   }
+
+  /* 最终 hover 覆盖(放在 .reveal.in 之后,确保优先):板块放大 + 辉光 */
+  .card:hover{transform:translateY(-6px) scale(1.03);border-color:rgba(130,160,255,.45);box-shadow:0 20px 56px rgba(90,120,240,.28)}
+  .shot:hover{transform:scale(1.02);border-color:rgba(130,160,255,.5);box-shadow:0 34px 80px rgba(0,0,0,.55)}
+  .step:hover,.g-step:hover{transform:scale(1.03);border-color:rgba(130,160,255,.45);box-shadow:0 16px 44px rgba(90,120,240,.2)}
+  .price:hover{transform:scale(1.02);box-shadow:0 20px 60px rgba(90,120,240,.25)}
+  .faq-item:hover{transform:scale(1.012);border-color:rgba(130,160,255,.35)}
 </style>
 </head>
 <body>
@@ -482,31 +488,33 @@
       <p>价格与细则将在正式发售时确认，以下为规划</p>
     </div>
     <div class="buy reveal">
-      <div class="price">
-        <h3>买断版</h3>
-        <div class="p-sub">一次购买，永久使用</div>
+      <div class="price hot">
+        <span class="p-tag">限时优惠</span>
+        <h3>先行版</h3>
+        <div class="p-sub">正式发售前优惠价 · 同样买断</div>
         <div class="p-num">¥?<small> / 台</small></div>
         <ul>
-          <li>全部功能：拍号细分、拍点小球、颜色进度</li>
-          <li>导出无限制（无水印、无限时长）</li>
-          <li>免费升级当前大版本</li>
+          <li>包含全部功能：拍号细分、拍点小球、颜色进度</li>
+          <li>一次买断，永久使用</li>
+          <li>正式版上线后免费升级，无需补差价</li>
+          <li>授权一台固定电脑（机器码绑定）</li>
         </ul>
         <a class="btn soon" href="javascript:;">即将发售</a>
       </div>
-      <div class="price hot">
-        <span class="p-tag">教学推荐</span>
-        <h3>教师版</h3>
-        <div class="p-sub">绑定同一台电脑，专为老师备课设计</div>
+      <div class="price">
+        <h3>买断版</h3>
+        <div class="p-sub">正式上线后的正式价格</div>
         <div class="p-num">¥?<small> / 台</small></div>
         <ul>
-          <li>包含买断版全部功能</li>
-          <li>授权一台固定电脑，机器码绑定</li>
-          <li>优先技术支持</li>
+          <li>包含全部功能：拍号细分、拍点小球、颜色进度</li>
+          <li>一次买断，永久使用</li>
+          <li>免费升级当前大版本</li>
+          <li>授权一台固定电脑（机器码绑定）</li>
         </ul>
         <a class="btn soon" href="javascript:;">即将发售</a>
       </div>
     </div>
-    <p class="buy-note reveal">定价与售卖方式仍在确定中，先免费下载体验，正式发售时官网会第一时间公布。</p>
+    <p class="buy-note reveal">先行版为正式发售前的限时优惠价，价格更实惠、同样是买断；正式上线后恢复买断版正式价格。购买方式公布后官网会第一时间更新。</p>
   </div>
 </section>
 
