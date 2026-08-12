@@ -1,0 +1,14 @@
+# Cloudflare Pages 自定义 404
+# 放在仓库根目录,上传到 Cloudflare Pages 后自动生效
+
+# 静态资源长缓存,HTML 短缓存(方便改版立即生效)
+/assets/*
+  Cache-Control: public, max-age=604800
+/*
+  Cache-Control: public, max-age=300
+
+# 基础安全头
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: strict-origin-when-cross-origin
