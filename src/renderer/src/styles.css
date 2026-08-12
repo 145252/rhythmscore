@@ -1658,3 +1658,9 @@ body.dark .lic-head {
 /* 展开动画结束后(JS ready)才启用内部滚动,避免动画中滚动条闪现 */
 .collapse-card.open.ready .collapse-body{overflow-y:auto;overflow-x:hidden}
 .collapse-inner{padding:0 16px 16px}
+/* 板块内部滚动条:3px 极细,不挤内容 */
+.collapse-body{scrollbar-width:thin;scrollbar-color:rgba(100,120,160,.38) transparent}
+.collapse-body::-webkit-scrollbar{width:3px}
+.collapse-body::-webkit-scrollbar-track{background:transparent}
+.collapse-body::-webkit-scrollbar-thumb{background:rgba(100,120,160,.32);border-radius:1.5px}
+.collapse-body::-webkit-scrollbar-thumb:hover{background:rgba(100,120,160,.5)}
