@@ -5,9 +5,9 @@ import { decodeWaveform, formatTime, getAudio } from '../audioPlayer'
 import { getMeasureCount } from '../geometry'
 import { readAsDataURL } from '../base64'
 
-const WAVE_H = 32
+const WAVE_H = 34
 
-/** 底部音频播放条:横贯窗口底部,波形 + 播放控制 + 对点(音乐播放器风格) */
+/** 底部音频播放条:结构恒定(导入前后一致),未导入时波形为假、控件灰置禁用 */
 export default function BottomAudioBar(): React.JSX.Element {
   const audioName = useStore((s) => s.audioName)
   const audioDataUrl = useStore((s) => s.audioDataUrl)
@@ -174,11 +174,12 @@ export default function BottomAudioBar(): React.JSX.Element {
     }
   }
 
-  // 波形绘制(导入后:真实波形 + 对点标记 + 播放游标;未导入:装饰假波形)
+  // 波形绘制:导入后真实波形;未导入时密集假波形
   useEffect(() => {
     const canvas = waveRef.current
     if (!canvas) return
     const W = canvas.clientWidth
+    if (W <= 0) return
     const dpr = window.devicePixelRatio || 1
     canvas.width = Math.max(1, Math.floor(W * dpr))
     canvas.height = WAVE_H * dpr
@@ -190,7 +191,7 @@ export default function BottomAudioBar(): React.JSX.Element {
     if (!audioDataUrl || !waveformPeaks || !audioDuration) {
       // 装饰假波形:极密细条,多频正弦叠加产生自然高低错落
       const fake = 520
-      ctx.fillStyle = 'rgba(120,140,180,0.24)'
+      ctx.fillStyle = 'rgba(120,140,180,0.22)'
       const bw2 = W / fake
       for (let i = 0; i < fake; i++) {
         const v =
@@ -213,7 +214,7 @@ export default function BottomAudioBar(): React.JSX.Element {
       ctx.fillRect(i * bw, (WAVE_H - h) / 2, Math.max(1, bw - 0.5), h)
     }
 
-    // 对点标记:只画橙色竖线(数字容易重叠看不清,只保留定位线)
+    // 对点标记:只画橙色竖线
     for (const ev of markEvents) {
       const x = (ev.time / audioDuration) * W
       ctx.fillStyle = '#BA7517'
@@ -225,7 +226,12 @@ export default function BottomAudioBar(): React.JSX.Element {
     ctx.fillRect(cx - 0.75, 0, 1.5, WAVE_H)
   }, [waveformPeaks, currentTime, markEvents, audioDuration, audioDataUrl])
 
-  const onWaveClick = (e: React.MouseEvent<HTMLCanvasElement>): void => {
+  const onWaveClick = (e: React.MouseEvent<HTMLElement>): void => {
+    if (!audioDataUrl) {
+      // 未导入:点击波形打开文件选择
+      fileInputRef.current?.click()
+      return
+    }
     const canvas = waveRef.current
     if (!canvas || !audioDuration) return
     const rect = canvas.getBoundingClientRect()
@@ -233,116 +239,123 @@ export default function BottomAudioBar(): React.JSX.Element {
   }
 
   const markedCount = markEvents.length
+  const hasAudio = !!audioDataUrl
 
   return (
-    <div className={`bottom-bar ${audioDataUrl ? 'has-audio' : ''}`}>
-      {!audioDataUrl ? (
-        <div
-          className="bar-empty"
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault()
-            const f = e.dataTransfer.files?.[0]
-            if (f) void loadAudio(f)
-          }}
-        >
-          <div className="bar-empty-wave">
+    <div className={`bottom-bar ${hasAudio ? 'has-audio' : ''}`}>
+      <div className="bar-top">
+        {/* 左侧:波形(未导入=假波形+拖放导入) */}
+        <div className="bar-info">
+          <div
+            className="wave-wrap"
+            onClick={onWaveClick}
+            onDragOver={(e) => {
+              if (!hasAudio) e.preventDefault()
+            }}
+            onDrop={(e) => {
+              if (!hasAudio) {
+                e.preventDefault()
+                const f = e.dataTransfer.files?.[0]
+                if (f) void loadAudio(f)
+              }
+            }}
+          >
             <canvas ref={waveRef} className="wave-canvas" style={{ height: WAVE_H }} />
-          </div>
-          <div className="bar-empty-hint">
-            <Upload size={16} />
-            <span>拖入 MP3 / WAV 音频</span>
-            <span style={{ fontSize: 11, opacity: 0.7 }}>或点击选择文件</span>
+            {!hasAudio && (
+              <div className="wave-hint">
+                <Upload size={14} />
+                拖入 MP3 / WAV 或点击导入
+              </div>
+            )}
           </div>
         </div>
-      ) : (
-        <>
-          <div className="bar-top">
-            <div className="bar-info">
-              <div className="wave-wrap" title={audioName ?? ''}>
-                <canvas ref={waveRef} className="wave-canvas" onClick={onWaveClick} style={{ height: WAVE_H }} />
-              </div>
-            </div>
-            <div className="bar-controls">
-            <button className="btn icon" title="后退(跳到上一个对点小节)" onClick={() => jumpMarked(-1)}>
-              <ChevronLeft size={16} />
+
+        {/* 右侧:控制组(未导入时全部禁用置灰) */}
+        <div className="bar-controls">
+          <button className="btn icon" title="后退(跳到上一个对点小节)" onClick={() => jumpMarked(-1)} disabled={!hasAudio}>
+            <ChevronLeft size={16} />
+          </button>
+          <button className="btn icon play" title="播放 / 暂停" onClick={togglePlay} disabled={!hasAudio}>
+            {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+          </button>
+          <button className="btn icon stop" title="停止(回到开头)" onClick={stop} disabled={!hasAudio}>
+            <Square size={14} />
+          </button>
+          <button className="btn icon" title="前进(跳到下一个对点小节)" onClick={() => jumpMarked(1)} disabled={!hasAudio}>
+            <ChevronRight size={16} />
+          </button>
+
+          <div className="bar-divider" />
+
+          <label className={`marking-toggle ${hasAudio ? '' : 'disabled'}`} title={hasAudio ? '' : '导入音频后可开启'}>
+            <span>对点</span>
+            <input
+              type="checkbox"
+              checked={marking}
+              onChange={toggleMarking}
+              disabled={!hasAudio}
+            />
+            <span className="toggle-track">
+              <span className="toggle-thumb" />
+            </span>
+          </label>
+
+          <div className={`measure-nav ${hasAudio ? '' : 'disabled'}`}>
+            <button
+              className="btn icon"
+              title="上一小节"
+              disabled={!hasAudio || currentMeasure === null || currentMeasure <= 1}
+              onClick={() => {
+                if (currentMeasure !== null) selectMeasure(currentMeasure - 1)
+              }}
+            >
+              <ChevronLeft size={14} />
             </button>
-            <button className="btn icon play" title="播放 / 暂停" onClick={togglePlay}>
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
+            <span className="cur-measure">
+              {!hasAudio ? '—' : marking ? <span className="marking-hint">对点中</span> : currentMeasure !== null ? `小节 ${currentMeasure}` : '—'}
+            </span>
+            <button
+              className="btn icon"
+              title="下一小节"
+              disabled={!hasAudio || currentMeasure === null}
+              onClick={() => {
+                if (currentMeasure !== null) selectMeasure(currentMeasure + 1)
+              }}
+            >
+              <ChevronRight size={14} />
             </button>
-            <button className="btn icon stop" title="停止(回到开头)" onClick={stop}>
-              <Square size={14} />
-            </button>
-            <button className="btn icon" title="前进(跳到下一个对点小节)" onClick={() => jumpMarked(1)}>
-              <ChevronRight size={16} />
-            </button>
+          </div>
 
-            <div className="bar-divider" />
+          <div className="bar-divider" />
 
-            {/* 对点模式开关 */}
-            <label className="marking-toggle">
-              <span>对点</span>
-              <input type="checkbox" checked={marking} onChange={toggleMarking} />
-              <span className="toggle-track">
-                <span className="toggle-thumb" />
-              </span>
-            </label>
-
-            {/* 小节导航 */}
-            <div className="measure-nav">
-              <button
-                className="btn icon"
-                title="上一小节"
-                disabled={currentMeasure === null || currentMeasure <= 1}
-                onClick={() => {
-                  if (currentMeasure !== null) selectMeasure(currentMeasure - 1)
-                }}
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <span className="cur-measure">
-                {marking ? (
-                  <span className="marking-hint">对点中</span>
-                ) : (
-                  <>{currentMeasure !== null ? `小节 ${currentMeasure}` : '—'}</>
-                )}
-              </span>
-              <button
-                className="btn icon"
-                title="下一小节"
-                disabled={currentMeasure === null}
-                onClick={() => {
-                  if (currentMeasure !== null) selectMeasure(currentMeasure + 1)
-                }}
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
-
-            <div className="bar-divider" />
-
-            {markedCount > 0 && (
-              <button className="btn danger-text" title="删除所有对点时间点" onClick={() => {
+          {markedCount > 0 && (
+            <button
+              className="btn danger-text"
+              title="删除所有对点时间点"
+              disabled={!hasAudio}
+              onClick={() => {
                 if (window.confirm(`确定清除全部 ${markedCount} 个对点时间点吗?`)) {
                   clearMarkEvents()
                 }
-              }}>
-                清除对点
-              </button>
-            )}
-            <button className="btn subtle" onClick={clearAudio}>
-              移除音频
+              }}
+            >
+              清除对点
             </button>
-          </div>
-          </div>
-          {/* 信息条:音频名 + 时长(只在导入后显示) */}
-          <div className="bar-meta">
-            <span className="bar-meta-name" title={audioName ?? ''}>{audioName}</span>
-            <span className="bar-meta-time">{formatTime(currentTime)} / {formatTime(audioDuration)}</span>
-          </div>
-        </>
-      )}
+          )}
+          <button className="btn subtle" onClick={clearAudio} disabled={!hasAudio}>
+            移除音频
+          </button>
+        </div>
+      </div>
+
+      {/* 信息栏:音频名 + 时长(结构恒定) */}
+      <div className="bar-meta">
+        <span className="bar-meta-name" title={hasAudio ? (audioName ?? '') : ''}>
+          {hasAudio ? audioName : '未导入音频'}
+        </span>
+        <span className="bar-meta-time">{formatTime(currentTime)} / {formatTime(audioDuration)}</span>
+      </div>
+
       <input
         ref={fileInputRef}
         type="file"

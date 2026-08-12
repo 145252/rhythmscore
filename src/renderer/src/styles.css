@@ -1741,3 +1741,20 @@ body.dark .wave-time{color:#7d89ab;text-shadow:none}
 body.dark .bar-meta{border-top-color:rgba(160,180,220,.15)}
 
 .bar-controls > *{height:34px!important;max-height:34px!important;min-height:34px!important;display:flex!important;align-items:center!important;flex:none!important;box-sizing:border-box!important;overflow:hidden!important;vertical-align:top!important}
+
+/* 底部条:结构恒定(未导入也显示全部控件,灰置禁用) */
+.bottom-bar{height:96px}
+.bottom-bar.has-audio{height:96px}
+/* 假波形导入提示(居中半透明) */
+.wave-wrap{position:relative;cursor:pointer}
+.wave-hint{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:6px;
+  font-size:12px;color:rgba(90,110,150,.75);pointer-events:none;white-space:nowrap;
+  text-shadow:0 1px 2px rgba(255,255,255,.8);
+}
+body.dark .wave-hint{color:rgba(170,190,230,.7);text-shadow:none}
+/* 未导入时控件置灰 */
+.bar-controls .btn:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.bar-controls .btn:disabled:hover{transform:none}
+.bar-controls .marking-toggle.disabled{opacity:.45}
+.bar-controls .measure-nav.disabled{opacity:.45}
