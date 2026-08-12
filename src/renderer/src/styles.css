@@ -1696,8 +1696,8 @@ body.dark .lic-head {
   overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
 }
 .bar-info .audio-name span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}
-.wave-wrap{flex:1;min-width:0;position:relative}
-.wave-canvas{width:100%;display:block;border-radius:8px;cursor:pointer}
+.wave-wrap{flex:1;min-width:0;position:relative;margin:0}
+.wave-canvas{width:100%;display:block;border-radius:8px;cursor:pointer;background:transparent;border:none}
 .wave-time{position:absolute;left:8px;right:8px;bottom:2px;display:flex;justify-content:space-between;
   font-size:10.5px;color:var(--ink3);pointer-events:none;text-shadow:0 1px 2px rgba(255,255,255,.7)}
 /* 控制区 */
@@ -1710,9 +1710,9 @@ body.dark .lic-head {
 }
 .bar-controls .btn.play:hover{transform:scale(1.06)}
 .bar-divider{width:1px;height:26px;background:rgba(100,120,160,.25);margin:0 4px}
-.bar-controls .marking-toggle{gap:7px;line-height:1}
+.bar-controls .marking-toggle{gap:7px;line-height:1;margin:0}
 .bar-controls .marking-toggle>span{font-size:13px;white-space:nowrap}
-.bar-controls .measure-nav{display:flex;align-items:center;gap:4px;line-height:1}
+.bar-controls .measure-nav{display:flex;align-items:center;gap:4px;line-height:1;margin:0}
 .bar-controls .cur-measure{font-size:12.5px;color:var(--ink);min-width:52px;text-align:center;white-space:nowrap;line-height:1}
 .bar-controls .marking-hint{color:#e09a1f;font-size:12px}
 .bar-controls .count-pill{font-size:12px;color:var(--ink2);white-space:nowrap;background:rgba(120,140,180,.18);border:1px solid rgba(120,140,180,.3);padding:3px 9px;border-radius:999px}
@@ -1758,3 +1758,4 @@ body.dark .wave-hint{color:rgba(170,190,230,.7);text-shadow:none}
 .bar-controls .btn:disabled:hover{transform:none}
 .bar-controls .marking-toggle.disabled{opacity:.45}
 .bar-controls .measure-nav.disabled{opacity:.45}
+
