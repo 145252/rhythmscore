@@ -4,6 +4,7 @@ import { useStore } from '../store'
 import { decodeWaveform, formatTime, getAudio } from '../audioPlayer'
 import { getMeasureCount } from '../geometry'
 import { readAsDataURL } from '../base64'
+import CollapseCard from './CollapseCard'
 
 const WAVE_H = 64
 
@@ -225,11 +226,7 @@ export default function AudioPanel(): React.JSX.Element {
   const markedCount = markEvents.length
 
   return (
-    <div className="card">
-      <h3 className="card-title">
-        <span className="num">2</span> 音频导入
-      </h3>
-
+    <CollapseCard num="2" title="音频导入">
       {!audioDataUrl ? (
         <>
           <div
@@ -370,6 +367,6 @@ export default function AudioPanel(): React.JSX.Element {
           </p>
         </>
       )}
-    </div>
+    </CollapseCard>
   )
 }

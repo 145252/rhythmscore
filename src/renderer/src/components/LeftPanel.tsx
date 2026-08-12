@@ -3,6 +3,7 @@ import { AlignVerticalJustifyCenter, Eraser, Minus, MousePointer2, Trash2 } from
 import { useStore } from '../store'
 import AudioPanel from './AudioPanel'
 import ColorSwatches from './ColorSwatches'
+import CollapseCard from './CollapseCard'
 
 const TOOL_HINTS: Record<string, string> = {
   hline: '横线模式:点击每一行谱表的上下边界。横线会自动截断在左右边框竖线之间',
@@ -39,10 +40,7 @@ export default function LeftPanel(): React.JSX.Element {
 
   return (
     <aside className="side-panel left">
-      <div className="card">
-        <h3 className="card-title">
-          <span className="num">1</span> 分割乐谱
-        </h3>
+      <CollapseCard num="1" title="分割乐谱">
         <div className="tool-grid">
           {tools.map((t) => (
             <button
@@ -148,7 +146,7 @@ export default function LeftPanel(): React.JSX.Element {
         </div>
 
         <p className="hint">{TOOL_HINTS[tool]}</p>
-      </div>
+      </CollapseCard>
 
       <div className="section-gap" />
 

@@ -10,6 +10,7 @@ import {
   type FollowMode,
   type VideoRatio
 } from '../videoExport'
+import CollapseCard from './CollapseCard'
 
 const RATIOS = Object.keys(RATIO_SIZES) as VideoRatio[]
 
@@ -251,11 +252,7 @@ export default function RightPanel(): React.JSX.Element {
 
   return (
     <aside className="side-panel right">
-      <div className="card">
-        <h3 className="card-title">
-          <span className="num">3</span> 高亮设置
-        </h3>
-
+      <CollapseCard num="3" title="高亮设置">
         <p className="label">跟随模式</p>
         <div className="mode-row">
           <button className={`btn mode ${mode === 'continuous' ? 'active' : ''}`} onClick={() => setMode('continuous')} disabled={busy}>
@@ -391,15 +388,11 @@ export default function RightPanel(): React.JSX.Element {
           </>
         )}
 
-      </div>
+      </CollapseCard>
 
       <div className="section-gap" />
 
-      <div className="card">
-        <h3 className="card-title">
-          <span className="num">4</span> 生成视频
-        </h3>
-
+      <CollapseCard num="4" title="生成视频">
         <p className="label">画面比例</p>
         <div className="ratio-grid">
           {RATIOS.map((r) => (
@@ -511,7 +504,7 @@ export default function RightPanel(): React.JSX.Element {
             ? `已对点 ${markedCount} 个小节。导出时按音频时间轴渲染,时长 = 音频时长。`
             : '需要:导入曲谱 + 导入音频 + 至少对点 1 个小节'}
         </p>
-      </div>
+      </CollapseCard>
     </aside>
   )
 }

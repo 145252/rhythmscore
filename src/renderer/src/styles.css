@@ -1642,3 +1642,18 @@ body.dark .lic-head {
   background-image: repeating-conic-gradient(#d8dde6 0% 25%, #eef1f6 0% 50%);
   background-size: 22px 22px;
 }
+
+/* 可折叠面板:标题栏点击展开/收起 */
+.collapse-card{padding:0}
+.collapse-head{
+  width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:14px 16px;background:none;border:none;cursor:pointer;color:inherit;font-family:inherit;text-align:left;
+}
+.collapse-head:hover{background:rgba(255,255,255,.045)}
+.collapse-head .card-title{margin:0;font-size:14px}
+.collapse-arrow{color:var(--ink3);transition:transform .25s;flex:none}
+.collapse-arrow.rot{transform:rotate(180deg)}
+.collapse-body{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}
+.collapse-card.open .collapse-body{grid-template-rows:1fr}
+.collapse-inner{overflow:hidden;padding:0 16px 16px}
+.collapse-card.open .collapse-inner{padding-top:2px}
