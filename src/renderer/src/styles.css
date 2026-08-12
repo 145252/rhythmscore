@@ -1688,6 +1688,7 @@ body.dark .lic-head {
 .bar-empty-hint{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:13.5px;white-space:nowrap}
 /* 已导入:信息区(名称+波形) */
 .bar-top{flex:1;min-height:0;display:flex;align-items:center;gap:12px;padding:8px 12px}
+.bar-info{flex:1;min-width:0;display:flex;align-items:center;overflow:hidden}
 .bar-info .audio-name{
   display:flex;align-items:center;justify-content:center;gap:6px;
   height:14px;line-height:14px;font-size:12px;color:var(--ink2);
