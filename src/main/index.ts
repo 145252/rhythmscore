@@ -346,6 +346,7 @@ ipcMain.handle(
       }
       // 音频:dataURL → 临时文件(mime 映射扩展名,供 ffmpeg 探测)
       let audioPath: string | null = null
+      let audioDir: string | null = null
       if (opts.audioDataUrl && typeof opts.audioDataUrl === 'string') {
         try {
           const { mkdtemp, writeFile } = await import('fs/promises')
@@ -364,28 +365,20 @@ ipcMain.handle(
                   : /audio\/webm/i.test(meta)
                     ? 'webm'
                     : 'bin'
-          const audioDir = await mkdtemp(join(tmpdir(), 'rs-audio-'))
+          audioDir = await mkdtemp(join(tmpdir(), 'rs-audio-'))
           audioPath = join(audioDir, `audio.${ext}`)
           await writeFile(audioPath, Buffer.from(b64, 'base64'))
-          // 编码完成后清理音频目录
-          const ap = audioPath
-          void (async () => {
-            try {
-              const { rm } = await import('fs/promises')
-              await rm(join(ap, '..'), { recursive: true, force: true })
-            } catch {
-              /* ignore */
-            }
-          })()
         } catch {
-          audioPath = null // 音频处理失败不阻塞视频导出
+          audioPath = null
+          audioDir = null
         }
       }
       await encodeAlphaMov(dirId, opts.fps, r.filePath, audioPath, opts.lowQuality === true)
-      // 清理帧临时目录(异步)
+      // 编码完成后再清理临时目录(帧 + 音频)
       void (async () => {
         try {
           const { rm } = await import('fs/promises')
+          if (audioDir) await rm(audioDir, { recursive: true, force: true })
           await rm(dirId, { recursive: true, force: true })
         } catch {
           /* ignore */
