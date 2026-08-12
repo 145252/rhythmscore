@@ -134,6 +134,7 @@ export async function encodeAlphaMov(
     '-framerate', String(fps),
     '-i', join(framesDir, 'frame-%05d.png'),
     '-c:v', 'qtrle',
+    '-movflags', '+faststart',
     destPath
   ]
   await runFfmpeg(args)
