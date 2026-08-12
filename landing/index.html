@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="RhythmScore 律谱 —— 把乐谱变成跟着音乐自动走动的动态谱。导入 PDF/JPG 曲谱，画线分节，对好时间点，一键导出带光标跟随的 MP4。macOS 桌面应用，钢琴、吉他、鼓、小提琴全乐器通用。">
+<link rel="icon" type="image/png" href="logo.png">
 <title>RhythmScore 律谱 · 让乐谱动起来</title>
 <style>
   :root{
@@ -36,6 +37,7 @@
     border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 34px rgba(0,0,0,.35);
   }
   .logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px}
+  .logo img{width:34px;height:34px;border-radius:11px;object-fit:cover;box-shadow:0 4px 14px rgba(46,123,201,.35)}
   .logo .dot{
     width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
     background:linear-gradient(145deg,#7fc0ff,#2e7bc9);color:#fff;font-size:16px;
@@ -261,7 +263,7 @@
 <div class="bg"></div>
 
 <nav>
-  <div class="logo"><span class="dot">♪</span>RhythmScore <span style="font-weight:400;color:var(--ink3);font-size:13px">律谱</span></div>
+  <div class="logo"><img src="logo.png" alt="RhythmScore"><span>RhythmScore</span> <span style="font-weight:400;color:var(--ink3);font-size:13px">律谱</span></div>
   <div class="menu">
     <a href="#pain">痛点</a><a href="#smart">功能</a><a href="#guide">教程</a><a href="#faq">FAQ</a><a href="#buy">购买</a>
   </div>
@@ -471,7 +473,7 @@
       <div class="sec-k" style="margin-bottom:16px">GET STARTED</div>
       <h2 style="font-size:clamp(28px,4vw,40px)">现在就让你的乐谱动起来</h2>
       <p style="color:var(--ink2);margin:14px 0 30px">macOS 原生应用 · 液态玻璃界面 · 白天黑夜自动跟随系统</p>
-      <a class="dl-big" href="https://github.com/你的GitHub用户名/rhythmscore/releases/latest/download/RhythmScore-0.2.0.dmg">⬇ &nbsp;下载 RhythmScore</a>
+      <a class="dl-big" href="https://github.com/145252/rhythmscore/releases/latest/download/RhythmScore-0.2.0.dmg">⬇ &nbsp;下载 RhythmScore</a>
       <div class="dl-meta">
         <b>当前版本 v0.2.0</b> · 支持 macOS 12+（Apple 芯片 / Intel）<br>
         下载 DMG 后双击安装，首次打开如提示「无法验证开发者」，请在「系统设置 → 隐私与安全性」中点按「仍要打开」。
@@ -481,7 +483,7 @@
 </section>
 
 <footer>
-  <div class="logo"><span class="dot">♪</span>RhythmScore</div>
+  <div class="logo"><img src="logo.png" alt="RhythmScore" style="width:40px;height:40px"><span>RhythmScore</span></div>
   <p>律谱 · 让每一张乐谱，都跟上音乐的心跳</p>
   <p style="margin-top:8px">© 2026 RhythmScore · rhythmscore.cn · 为音乐教学而作</p>
 </footer>
