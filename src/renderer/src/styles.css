@@ -1685,9 +1685,9 @@ body.dark .lic-head {
 .bar-empty-wave .wave-canvas{width:100%;display:block}
 .bar-empty-hint{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:13.5px;white-space:nowrap}
 /* 已导入:信息区(名称+波形) */
-.bar-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.bar-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .bar-info .audio-name{
-  display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink2);
+  display:flex;align-items:center;gap:6px;font-size:12px;line-height:1.2;color:var(--ink2);
   min-width:0;max-width:100%;
   overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
 }

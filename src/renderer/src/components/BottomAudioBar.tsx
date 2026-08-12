@@ -5,7 +5,7 @@ import { decodeWaveform, formatTime, getAudio } from '../audioPlayer'
 import { getMeasureCount } from '../geometry'
 import { readAsDataURL } from '../base64'
 
-const WAVE_H = 38
+const WAVE_H = 32
 
 /** 底部音频播放条:横贯窗口底部,波形 + 播放控制 + 对点(音乐播放器风格) */
 export default function BottomAudioBar(): React.JSX.Element {
