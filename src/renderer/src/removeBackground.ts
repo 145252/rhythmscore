@@ -50,6 +50,53 @@ export async function removeWhiteBackground(img: HTMLImageElement, invert = fals
       d[o + 2] = 255 - b
     }
   }
+
+  // 反色后处理:消除黑边(半透明边缘实心白 + 内容外扩 1px 白色)
+  if (invert) {
+    const a0 = new Uint8ClampedArray(d) // 原始 alpha 快照(膨胀判定用)
+    // 1) 半透明边缘像素 → 纯白实心(盖掉暗色羽化边)
+    for (let i = 0; i < d.length; i += 4) {
+      const a = d[i + 3]
+      if (a > 0 && a < 255) {
+        d[i] = 255
+        d[i + 1] = 255
+        d[i + 2] = 255
+        d[i + 3] = 255
+      }
+    }
+    // 2) 1px 8邻域膨胀:透明像素的邻域有内容 → 填纯白(向外扩一圈,覆盖黑边)
+    for (let y = 1; y < h - 1; y++) {
+      for (let x = 1; x < w - 1; x++) {
+        const i = (y * w + x) * 4
+        if (d[i + 3] === 0) {
+          const up = ((y - 1) * w + x) * 4
+          const dn = ((y + 1) * w + x) * 4
+          const lf = (y * w + x - 1) * 4
+          const rt = (y * w + x + 1) * 4
+          const ul = ((y - 1) * w + x - 1) * 4
+          const ur = ((y - 1) * w + x + 1) * 4
+          const dl = ((y + 1) * w + x - 1) * 4
+          const dr = ((y + 1) * w + x + 1) * 4
+          if (
+            a0[up + 3] > 0 ||
+            a0[dn + 3] > 0 ||
+            a0[lf + 3] > 0 ||
+            a0[rt + 3] > 0 ||
+            a0[ul + 3] > 0 ||
+            a0[ur + 3] > 0 ||
+            a0[dl + 3] > 0 ||
+            a0[dr + 3] > 0
+          ) {
+            d[i] = 255
+            d[i + 1] = 255
+            d[i + 2] = 255
+            d[i + 3] = 255
+          }
+        }
+      }
+    }
+  }
+
   ctx.putImageData(id, 0, 0)
   return c.toDataURL('image/png')
 }
