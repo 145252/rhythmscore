@@ -384,6 +384,9 @@ ipcMain.handle(
             lines.push(`file '${join(dirId, `frame-${String(i).padStart(5, '0')}.png`)}'`)
             if (i < opts.times.length - 1) {
               lines.push(`duration ${Math.max(opts.times[i + 1] - opts.times[i], 0.02).toFixed(4)}`)
+            } else {
+              // 末帧:定格 50ms(避免 concat 默认时长导致末尾多余静帧)
+              lines.push('duration 0.0500')
             }
           }
           framesList = join(dirId, 'list.txt')
