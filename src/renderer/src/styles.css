@@ -1740,4 +1740,4 @@ body.dark .wave-time{color:#7d89ab;text-shadow:none}
 .bar-meta-time{flex:none;font-variant-numeric:tabular-nums}
 body.dark .bar-meta{border-top-color:rgba(160,180,220,.15)}
 
-.bar-controls > *{height:34px;display:flex;align-items:center;flex:none}
+.bar-controls > *{height:34px;max-height:34px;display:flex;align-items:center;flex:none;box-sizing:border-box;overflow:hidden}
