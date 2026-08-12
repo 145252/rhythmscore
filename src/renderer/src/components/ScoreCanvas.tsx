@@ -413,6 +413,40 @@ export default function ScoreCanvas(): React.JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [score, hLines, vLines, markEvents])
 
+  // 视口自动跟随:播放/对点时,当前小节所在行切换即平滑滚动,让新行完整可见(优先居中)
+  useEffect(() => {
+    if (!score || markEvents.length === 0) return
+    const measuresList = buildMeasures(hLines, vLines, score.width, score.height)
+    let lastN: number | null = null
+    let raf = 0
+    const loop = (): void => {
+      const st = useStore.getState()
+      const t = getAudio().currentTime
+      const ev = eventAtTime(t, st.markEvents)
+      const n = ev !== null ? ev.n : null
+      if (n !== null && n !== lastN) {
+        lastN = n
+        const m = measuresList.find((mm) => mm.n === n)
+        const el = scrollRef.current
+        if (m && el) {
+          const topPx = m.top * st.scale
+          const bottomPx = m.bottom * st.scale
+          const rowH = bottomPx - topPx
+          const vh = el.clientHeight
+          const maxTop = Math.max(el.scrollHeight - vh, 0)
+          let target: number
+          if (rowH >= vh) target = topPx - 12
+          else target = topPx - (vh - rowH) / 2
+          el.scrollTo({ top: clamp(target, 0, maxTop), behavior: 'smooth' })
+        }
+      }
+      raf = requestAnimationFrame(loop)
+    }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [score, hLines, vLines, markEvents, scale])
+
   // ---------- 识别五线谱小节线(吸附目标;导入曲谱/画横线时重检测) ----------
   useEffect(() => {
     if (!score) {

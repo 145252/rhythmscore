@@ -229,7 +229,7 @@ export const useStore = create<EditorState>((set, get) => {
   vLines: [],
   scorePages: [],
 
-  tool: 'hline',
+  tool: 'vline',
   lineWidth: 2,
   selected: null,
 
@@ -460,7 +460,8 @@ export const useStore = create<EditorState>((set, get) => {
   setCursorBall: (b) => set({ cursorBall: b }),
   setBeatSubdivision: (b) => {
     commit()
-    set({ beatSubdivision: b })
+    // 开启拍号细分时自动切到竖线工具(画线=每拍分线)
+    set({ beatSubdivision: b, ...(b ? { tool: 'vline' as Tool } : {}) })
   },
   setBeatsPerMeasure: (n) => {
     const count = Math.max(2, Math.min(12, Math.round(n)))
