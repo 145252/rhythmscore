@@ -133,8 +133,8 @@ interface EditorState {
   removeBackground: boolean
   setRemoveBackground: (b: boolean) => void
   /** 导出背景:original=原样 / white / black / transparent=透明通道(WebM) */
-  videoBackground: 'original' | 'white' | 'black' | 'transparent' | 'green'
-  setVideoBackground: (b: 'original' | 'white' | 'black' | 'transparent' | 'green') => void
+  videoBackground: 'original' | 'white' | 'black' | 'transparent'
+  setVideoBackground: (b: 'original' | 'white' | 'black' | 'transparent') => void
   setCursorColor: (c: string) => void
   setCursorWidth: (w: number) => void
   setCursorOpacity: (o: number) => void

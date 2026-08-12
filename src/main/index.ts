@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, dialog, shell, Menu, type MenuItemConstruc
 import { join, basename, extname } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto'
-import { exportVideo, encodeAlphaWebm, type SegmentSpec } from './ffmpeg'
+import { exportVideo, encodeAlphaMov, type SegmentSpec } from './ffmpeg'
 import { machineCode, verifyLicense, verifyIntegrity } from './license'
 
 const isDev = !!process.env.ELECTRON_RENDERER_URL
@@ -328,12 +328,12 @@ ipcMain.handle(
   ): Promise<{ canceled: boolean; savedPath?: string; error?: string }> => {
     try {
       const r = await dialog.showSaveDialog({
-        title: '保存透明视频(WebM, 可叠加)',
-        defaultPath: `${opts.defaultName}-透明.webm`,
-        filters: [{ name: 'WebM 视频(透明通道)', extensions: ['webm'] }]
+        title: '保存透明视频(MOV, 可叠加)',
+        defaultPath: `${opts.defaultName}-透明.mov`,
+        filters: [{ name: 'MOV 视频(透明通道)', extensions: ['mov'] }]
       })
       if (r.canceled || !r.filePath) return { canceled: true }
-      await encodeAlphaWebm(dirId, opts.fps, r.filePath, opts.lowQuality === true)
+      await encodeAlphaMov(dirId, opts.fps, r.filePath, opts.lowQuality === true)
       // 清理帧临时目录(异步)
       void (async () => {
         try {

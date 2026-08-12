@@ -120,24 +120,23 @@ export async function exportVideo(
 }
 
 /**
- * 透明通道导出:帧序列 PNG → VP9 alpha WebM(剪辑软件可叠加)。
- * 帧文件命名 frame-00001.png ...;透明需要 yuva420p 像素格式。
+ * 透明通道导出:帧序列 PNG → MOV(ProRes 4444 带 alpha)(剪辑软件可叠加)。
+ * 帧文件命名 frame-00001.png ...;ProRes 4444 用 yuva444 保留 alpha。
  */
-export async function encodeAlphaWebm(
+export async function encodeAlphaMov(
   framesDir: string,
   fps: number,
   destPath: string,
-  lowQuality?: boolean
+  _lowQuality?: boolean
 ): Promise<void> {
   const args = [
     '-y',
     '-framerate', String(fps),
     '-i', join(framesDir, 'frame-%05d.png'),
-    '-c:v', 'libvpx-vp9',
-    '-pix_fmt', 'yuva420p',
-    '-b:v', '0',
-    '-crf', lowQuality ? '34' : '22',
-    '-row-mt', '1',
+    '-c:v', 'prores_ks',
+    '-profile:v', '4444',
+    '-pix_fmt', 'yuva444p10le',
+    '-vendor', 'apl0',
     destPath
   ]
   await runFfmpeg(args)

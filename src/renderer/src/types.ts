@@ -62,7 +62,7 @@ export interface ProjectFile {
   /** 抠图(去除白色背景) */
   removeBackground?: boolean
   /** 导出背景:original/white/black/transparent */
-  videoBackground?: 'original' | 'white' | 'black' | 'transparent' | 'green'
+  videoBackground?: 'original' | 'white' | 'black' | 'transparent'
   /** 音频内容(随项目保存,打开后自动恢复,无需重新导入) */
   audio?: { name: string; dataUrl: string } | null
 }
