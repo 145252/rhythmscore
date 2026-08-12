@@ -120,22 +120,29 @@ export async function exportVideo(
 }
 
 /**
- * 透明通道导出:帧序列 PNG → MOV(ProRes 4444 带 alpha)(剪辑软件可叠加)。
+ * 透明通道导出:帧序列 PNG + 音频 → MOV(Animation 带 alpha + AAC 音轨)。
  * 帧文件命名 frame-00001.png ...;Animation(qtrle) 是 Apple 原生透明格式,QuickTime/剪映/Premiere 通用。
  */
 export async function encodeAlphaMov(
   framesDir: string,
   fps: number,
   destPath: string,
+  audioPath: string | null,
   _lowQuality?: boolean
 ): Promise<void> {
   const args = [
     '-y',
     '-framerate', String(fps),
-    '-i', join(framesDir, 'frame-%05d.png'),
+    '-i', join(framesDir, 'frame-%05d.png')
+  ]
+  if (audioPath) {
+    args.push('-i', audioPath)
+  }
+  args.push(
     '-c:v', 'qtrle',
+    ...(audioPath ? ['-c:a', 'aac', '-b:a', '192k', '-shortest'] : []),
     '-movflags', '+faststart',
     destPath
-  ]
+  )
   await runFfmpeg(args)
 }

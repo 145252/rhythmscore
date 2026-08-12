@@ -139,7 +139,8 @@ export default function RightPanel(): React.JSX.Element {
           const res = await window.api.finishAlphaVideo(dirId, {
             fps: 24,
             defaultName: projectName || '曲谱视频',
-            lowQuality: !st.licensed
+            lowQuality: !st.licensed,
+            audioDataUrl: st.audioDataUrl
           })
           if (!res || res.canceled) {
             setState('idle')
@@ -420,7 +421,7 @@ export default function RightPanel(): React.JSX.Element {
           ))}
         </div>
         {videoBackground === 'transparent' && (
-          <p className="hint">透明通道导出为 MOV(ProRes 4444 带 alpha),剪映/Premiere/达芬奇均可直接叠加;处理速度比 MP4 慢,需先开启「抠图」。</p>
+          <p className="hint">透明通道导出为 MOV(Animation 带 alpha + 原音轨),剪映/Premiere 可直接叠加;处理速度比 MP4 慢,需先开启「抠图」。</p>
         )}
 
         <label className="split-opt">
