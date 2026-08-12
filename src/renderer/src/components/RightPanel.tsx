@@ -410,8 +410,6 @@ export default function RightPanel(): React.JSX.Element {
           {(
             [
               ['original', '原样'],
-              ['white', '白色'],
-              ['black', '黑色'],
               ['transparent', '透明通道']
             ] as const
           ).map(([v, label]) => (
