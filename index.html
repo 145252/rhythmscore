@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="RhythmScore 律谱 —— 把乐谱变成跟着音乐自动走动的动态谱。导入 PDF/JPG 曲谱，画线分节，对好时间点，一键导出带光标跟随的 MP4。macOS 桌面应用，钢琴、吉他、鼓、小提琴全乐器通用。">
+<title>RhythmScore 律谱 · 让乐谱动起来</title>
+<style>
+  :root{
+    --bg0:#0d1020;--bg1:#151a33;--ink:#eef3ff;--ink2:#aab6d4;--ink3:#7d89ab;
+    --blue:#4b98e7;--blue2:#2e7bc9;--purple:#8b7bff;--pink:#ff5e8a;--red:#ff4d4d;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif;
+    color:var(--ink);background:var(--bg0);overflow-x:hidden;line-height:1.6;
+  }
+  ::selection{background:rgba(75,152,231,.35)}
+  .bg{
+    position:fixed;inset:0;z-index:-1;
+    background:
+      radial-gradient(900px 640px at 12% -8%, rgba(80,120,255,.28), transparent 62%),
+      radial-gradient(820px 600px at 104% 10%, rgba(255,90,140,.20), transparent 60%),
+      radial-gradient(760px 640px at 50% 112%, rgba(120,90,255,.22), transparent 62%),
+      radial-gradient(560px 420px at 80% 55%, rgba(40,200,190,.12), transparent 60%),
+      linear-gradient(160deg,#0b0f22 0%,#121428 45%,#0e1226 100%);
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+
+  /* 导航 */
+  nav{
+    position:sticky;top:14px;z-index:50;max-width:1180px;margin:14px auto 0;
+    display:flex;align-items:center;gap:14px;padding:10px 22px;border-radius:18px;
+    background:rgba(255,255,255,.06);backdrop-filter:blur(24px) saturate(1.6);
+    border:1px solid rgba(255,255,255,.12);box-shadow:0 10px 34px rgba(0,0,0,.35);
+  }
+  .logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px}
+  .logo .dot{
+    width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
+    background:linear-gradient(145deg,#7fc0ff,#2e7bc9);color:#fff;font-size:16px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 6px 18px rgba(46,123,201,.4);
+  }
+  .menu{margin-left:auto;display:flex;gap:4px}
+  .menu a{color:var(--ink2);text-decoration:none;font-size:13.5px;padding:7px 13px;border-radius:9px;transition:.2s}
+  .menu a:hover{color:#fff;background:rgba(255,255,255,.08)}
+  .cta{
+    display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:12px;font-size:13.5px;font-weight:500;
+    color:#fff;text-decoration:none;background:linear-gradient(135deg,#4b98e7,#7b5cf0);
+    box-shadow:0 8px 22px rgba(90,120,240,.35),inset 0 1px 0 rgba(255,255,255,.3);transition:.2s;
+  }
+  .cta:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(90,120,240,.5)}
+
+  /* Hero */
+  header{text-align:center;padding:110px 0 70px}
+  .tag{
+    display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;font-size:12.5px;color:#cfe4ff;
+    background:rgba(75,152,231,.14);border:1px solid rgba(75,152,231,.35);margin-bottom:26px;
+  }
+  .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:#4be08c;box-shadow:0 0 10px #4be08c}
+  h1{
+    font-size:clamp(40px,7vw,72px);font-weight:800;letter-spacing:-1px;line-height:1.12;
+    background:linear-gradient(120deg,#fff 20%,#9cc8ff 55%,#b9a8ff 90%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{max-width:680px;margin:22px auto 0;font-size:17px;color:var(--ink2)}
+  .sub b{color:#fff;font-weight:600}
+  .hero-cta{margin-top:36px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .cta.ghost{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);box-shadow:none;color:var(--ink)}
+  .cta.ghost:hover{background:rgba(255,255,255,.12)}
+
+  /* 界面 mockup */
+  .mock{
+    margin:60px auto 0;max-width:1060px;border-radius:20px;padding:14px;
+    background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(20px);
+    box-shadow:0 40px 90px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .mock-bar{display:flex;gap:7px;padding:4px 6px 12px}
+  .mock-bar i{width:11px;height:11px;border-radius:50%}
+  .mock-bar i:nth-child(1){background:#ff5f57}.mock-bar i:nth-child(2){background:#febc2e}.mock-bar i:nth-child(3){background:#28c840}
+  .mock-body{display:flex;gap:10px;border-radius:14px;overflow:hidden;background:rgba(10,14,30,.6);height:440px}
+  .m-left{width:20%;padding:14px;border-right:1px solid rgba(255,255,255,.08)}
+  .m-center{flex:1;position:relative;background:
+    linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);
+    background-size:26px 26px}
+  .m-right{width:22%;padding:14px;border-left:1px solid rgba(255,255,255,.08)}
+  .m-title{font-size:12px;color:#7d89ab;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+  .m-title b{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;font-size:10px;color:#cfe4ff;background:rgba(75,152,231,.25)}
+  .m-btn{height:30px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);margin-bottom:8px}
+  .m-btn.w{width:70%}.m-btn.w2{width:55%}
+  .m-colors{display:flex;gap:6px;margin:8px 0}
+  .m-colors i{width:18px;height:18px;border-radius:50%}
+  .m-colors i:nth-child(1){background:#378add}.m-colors i:nth-child(2){background:#ff4d4d}.m-colors i:nth-child(3){background:#f59e0b}
+  .m-colors i:nth-child(4){background:#22c55e}.m-colors i:nth-child(5){background:#111}
+  .m-toggle{height:22px;border-radius:11px;background:rgba(255,255,255,.14);margin-top:8px;position:relative;width:60%}
+  .m-toggle::after{content:"";position:absolute;left:60%;top:2px;width:18px;height:18px;border-radius:50%;background:#eef3ff}
+  /* 谱面 */
+  .staff{position:absolute;left:9%;right:9%;top:22%;}
+  .staff .row{position:relative;height:92px;margin-bottom:18px}
+  .staff .row::before{content:"";position:absolute;left:0;right:0;top:8px;height:34px;
+    background:repeating-linear-gradient(#dbe6ff 0 2px,transparent 2px 9px);opacity:.9;border-radius:4px}
+  .staff .row::after{content:"";position:absolute;left:0;right:0;top:56px;height:22px;
+    background:repeating-linear-gradient(#a9c0ee 0 2px,transparent 2px 8px);opacity:.4}
+  .notes{position:absolute;top:12px;display:flex;gap:34px}
+  .notes i{width:7px;height:7px;border-radius:50%;background:#fff;display:block;position:relative}
+  .notes i::after{content:"";position:absolute;left:5px;top:-9px;width:2px;height:22px;background:#fff}
+  .notes .r{background:#ff4d4d;box-shadow:0 0 12px rgba(255,77,77,.8)}
+  .notes .r::after{background:#ff4d4d}
+  .cursorline{position:absolute;top:12%;bottom:8%;width:5px;left:46%;
+    background:linear-gradient(#ff8a72,#d93a26);border-radius:3px;
+    box-shadow:0 0 14px rgba(255,90,70,.55),0 0 30px rgba(255,90,70,.3)}
+  .cursorline::before{content:"";position:absolute;top:-12px;left:50%;transform:translateX(-50%);
+    width:14px;height:14px;border-radius:50%;background:#d93a26;box-shadow:0 0 14px rgba(255,90,70,.9)}
+  .m-foot{position:absolute;left:9%;right:9%;bottom:7%;height:10px;border-radius:6px;
+    background:linear-gradient(90deg,rgba(255,255,255,.25) 0 62%,rgba(255,255,255,.07) 62%)}
+  .wave{margin-top:14px;height:52px;border-radius:10px;background:
+    repeating-linear-gradient(90deg,rgba(154,163,173,.5) 0 3px,transparent 3px 9px);opacity:.5}
+  .mark{margin-top:8px;height:18px;border-radius:5px;background:rgba(255,255,255,.08);width:80%}
+  .mark span{color:#ba7517;font-size:10px;line-height:18px;padding-left:8px}
+
+  section{padding:90px 0}
+  .sec-head{text-align:center;margin-bottom:54px}
+  .sec-k{font-size:13px;letter-spacing:3px;color:#7b8df8;font-weight:600;margin-bottom:12px}
+  .sec-head h2{font-size:clamp(28px,4.4vw,42px);font-weight:700;letter-spacing:-.5px}
+  .sec-head p{color:var(--ink2);margin-top:12px;font-size:15.5px}
+
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{
+    padding:30px 26px;border-radius:20px;
+    background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(16px);
+    transition:transform .25s,border-color .25s;
+  }
+  .card:hover{transform:translateY(-6px);border-color:rgba(130,160,255,.4)}
+  .ico{
+    width:52px;height:52px;border-radius:15px;display:grid;place-items:center;font-size:24px;margin-bottom:18px;
+    background:linear-gradient(145deg,rgba(120,140,255,.3),rgba(120,140,255,.08));border:1px solid rgba(140,160,255,.3)
+  }
+  .card h3{font-size:17px;margin-bottom:10px;font-weight:600}
+  .card p{color:var(--ink2);font-size:14px}
+
+  /* 流程 */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:step}
+  .step{position:relative;padding:24px 20px;border-radius:18px;text-align:center;
+    background:linear-gradient(170deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.12)}
+  .step::before{counter-increment:step;content:counter(step);
+    width:30px;height:30px;border-radius:50%;display:grid;place-items:center;margin:0 auto 12px;
+    background:linear-gradient(135deg,#4b98e7,#7b5cf0);font-weight:700;font-size:14px;color:#fff}
+  .step h4{font-size:15px;margin-bottom:6px}
+  .step p{color:var(--ink2);font-size:12.5px}
+  .step .arr{position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:#5a6bff;font-size:18px}
+  .step:last-child .arr{display:none}
+
+  /* 亮点双栏 */
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center}
+  .split h3{font-size:26px;font-weight:700;margin-bottom:16px}
+  .split p{color:var(--ink2);font-size:15px;margin-bottom:14px}
+  .feat{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px}
+  .feat .tick{flex:none;width:26px;height:26px;border-radius:9px;display:grid;place-items:center;font-size:13px;margin-top:2px;
+    background:rgba(75,231,140,.16);border:1px solid rgba(75,231,140,.4);color:#4be08c}
+  .feat b{display:block;font-size:15px;margin-bottom:2px}
+  .feat span{color:var(--ink2);font-size:13.5px}
+
+  /* 手机卡片 */
+  .phone{
+    width:230px;height:470px;margin:0 auto;border-radius:34px;padding:10px;position:relative;
+    background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.2);box-shadow:0 30px 70px rgba(0,0,0,.5)
+  }
+  .phone::before{content:"";position:absolute;top:14px;left:50%;transform:translateX(-50%);width:60px;height:6px;border-radius:3px;background:rgba(255,255,255,.25)}
+  .phone-in{height:100%;border-radius:26px;overflow:hidden;background:#0c0f24;padding:26px 12px 14px;position:relative}
+  .phone .staff2{position:absolute;left:8%;right:8%;top:16%}
+  .phone .staff2 .row{height:64px;position:relative;margin-bottom:10px}
+  .phone .staff2 .row::before{content:"";position:absolute;inset:0;top:6px;height:24px;background:repeating-linear-gradient(#dbe6ff 0 2px,transparent 2px 6px);opacity:.85}
+  .phone .staff2 .row::after{content:"";position:absolute;top:40px;height:16px;left:0;right:0;background:repeating-linear-gradient(#a9c0ee 0 2px,transparent 2px 6px);opacity:.35}
+  .phone .c{position:absolute;top:14%;bottom:10%;left:52%;width:4px;background:linear-gradient(#ff8a72,#d93a26);border-radius:2px;box-shadow:0 0 12px rgba(255,90,70,.6)}
+  .phone .btn-play{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);width:56px;height:56px;border-radius:50%;
+    background:linear-gradient(135deg,#4b98e7,#7b5cf0);display:grid;place-items:center;color:#fff;font-size:20px;
+    box-shadow:0 10px 26px rgba(90,120,240,.5)}
+
+  /* 教程 */
+  .guide{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .g-step{position:relative;padding:26px 22px;border-radius:18px;
+    background:linear-gradient(170deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.12)}
+  .g-step .num{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;margin-bottom:14px;font-weight:700;font-size:15px;color:#fff;
+    background:linear-gradient(135deg,#4b98e7,#7b5cf0)}
+  .g-step h4{font-size:15.5px;margin-bottom:8px}
+  .g-step p{color:var(--ink2);font-size:13px}
+  .g-step p b{color:#cfe4ff;font-weight:600}
+  .tip{
+    margin-top:26px;padding:16px 20px;border-radius:14px;font-size:13.5px;color:var(--ink2);
+    background:rgba(75,152,231,.1);border:1px solid rgba(75,152,231,.3)
+  }
+  .tip b{color:#9cc8ff}
+
+  /* FAQ 手风琴 */
+  .faq{max-width:820px;margin:0 auto}
+  .faq-item{border-radius:16px;margin-bottom:12px;overflow:hidden;
+    background:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.12)}
+  .faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 22px;text-align:left;
+    background:none;border:none;color:var(--ink);font-size:15px;font-weight:500;cursor:pointer;font-family:inherit}
+  .faq-q .arr{color:#5a6bff;font-size:16px;transition:transform .25s;flex:none}
+  .faq-item.open .faq-q .arr{transform:rotate(90deg)}
+  .faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .faq-a p{padding:0 22px 20px;color:var(--ink2);font-size:14px}
+
+  /* 购买 */
+  .buy{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:860px;margin:0 auto}
+  .price{padding:34px 30px;border-radius:22px;position:relative;
+    background:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.14)}
+  .price.hot{border-color:rgba(140,110,255,.55);background:linear-gradient(160deg,rgba(110,90,255,.16),rgba(255,90,140,.05))}
+  .price .p-tag{position:absolute;top:-12px;left:50%;transform:translateX(-50%);padding:4px 14px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;
+    background:linear-gradient(135deg,#ff8a72,#ff4d6a);box-shadow:0 6px 16px rgba(255,77,106,.4)}
+  .price h3{font-size:18px;margin-bottom:6px}
+  .price .p-sub{color:var(--ink3);font-size:13px;margin-bottom:18px}
+  .price .p-num{font-size:40px;font-weight:800;letter-spacing:-1px}
+  .price .p-num small{font-size:16px;font-weight:500;color:var(--ink3)}
+  .price ul{list-style:none;margin:20px 0 26px}
+  .price li{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;color:var(--ink2);padding:5px 0}
+  .price li::before{content:"✓";color:#4be08c;flex:none;font-weight:700}
+  .price .btn{display:block;text-align:center;padding:12px;border-radius:12px;font-size:14px;font-weight:600;color:#fff;text-decoration:none;
+    background:linear-gradient(135deg,#4b98e7,#7b5cf0)}
+  .price .btn.soon{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);color:var(--ink2);cursor:default}
+  .buy-note{max-width:860px;margin:26px auto 0;text-align:center;color:var(--ink3);font-size:13px}
+
+  /* 下载 */
+  .dl-card{max-width:860px;margin:0 auto;padding:50px 40px;border-radius:24px;text-align:center;
+    background:linear-gradient(160deg,rgba(90,100,255,.14),rgba(255,90,140,.06));
+    border:1px solid rgba(130,140,255,.3)}
+  .dl-big{display:inline-flex;align-items:center;gap:10px;padding:15px 34px;border-radius:16px;font-size:16px;font-weight:600;color:#fff;text-decoration:none;
+    background:linear-gradient(135deg,#4b98e7,#7b5cf0);box-shadow:0 12px 30px rgba(90,120,240,.4)}
+  .dl-big:hover{transform:translateY(-2px)}
+  .dl-meta{color:var(--ink3);font-size:12.5px;margin-top:18px;line-height:1.9}
+  .dl-meta b{color:var(--ink2);font-weight:600}
+
+  footer{padding:60px 0 90px;text-align:center;border-top:1px solid rgba(255,255,255,.08)}
+  footer .logo{justify-content:center;margin-bottom:12px}
+  footer p{color:var(--ink3);font-size:13px}
+  .foot-cta{margin:30px 0}
+
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  @media(max-width:900px){
+    .grid3,.flow,.split,.guide,.buy{grid-template-columns:1fr}
+    .flow{grid-template-columns:1fr 1fr}
+    .menu{display:none}
+    .mock-body{height:340px;flex-direction:column;overflow:auto}
+    .m-left,.m-right{width:100%;border:none}
+    .step .arr{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<nav>
+  <div class="logo"><span class="dot">♪</span>RhythmScore <span style="font-weight:400;color:var(--ink3);font-size:13px">律谱</span></div>
+  <div class="menu">
+    <a href="#pain">痛点</a><a href="#smart">功能</a><a href="#guide">教程</a><a href="#faq">FAQ</a><a href="#buy">购买</a>
+  </div>
+  <a class="cta" href="#download">免费下载</a>
+</nav>
+
+<header>
+  <div class="wrap">
+    <span class="tag">macOS 桌面端 · 音乐教学利器 · 全乐器通用</span>
+    <h1>让乐谱，动起来</h1>
+    <p class="sub">RhythmScore 把纸上的乐谱变成<b>跟着音乐自动走</b>的动态谱 —— 导入曲谱、画线分节、对好时间点，一键导出<b>带光标跟随的 MP4</b>，学生看谱就能跟练。</p>
+    <div class="hero-cta">
+      <a class="cta" href="#download">立即开始 &nbsp;→</a>
+      <a class="cta ghost" href="#smart">看看功能</a>
+    </div>
+
+    <div class="mock reveal">
+      <div class="mock-bar"><i></i><i></i><i></i></div>
+      <div class="mock-body">
+        <div class="m-left">
+          <div class="m-title"><b>1</b>分割乐谱</div>
+          <div class="m-btn w"></div><div class="m-btn w2"></div>
+          <div class="m-colors"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="m-toggle"></div>
+          <div style="margin-top:16px"><div class="m-title"><b>2</b>音频对点</div></div>
+          <div class="m-btn w2"></div><div class="wave"></div>
+          <div class="mark"><span>● 12 个时间点</span></div>
+        </div>
+        <div class="m-center">
+          <div class="staff">
+            <div class="row"><span class="notes" style="left:12%"><i></i><i></i><i></i></span></div>
+            <div class="row"><span class="notes" style="left:38%"><i></i><i class="r"></i><i></i></span></div>
+            <div class="row"><span class="notes" style="left:64%"><i></i><i></i><i class="r"></i></span></div>
+          </div>
+          <div class="cursorline"></div>
+          <div class="m-foot"></div>
+        </div>
+        <div class="m-right">
+          <div class="m-title"><b>3</b>视频导出</div>
+          <div class="m-btn w"></div><div class="m-btn w2"></div>
+          <div class="m-title" style="margin-top:16px">高亮设置</div>
+          <div class="m-btn w"></div>
+          <div class="m-colors"><i></i><i></i><i></i><i></i><i></i></div>
+          <div style="margin-top:14px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:12px;color:#cfe4ff;background:linear-gradient(135deg,#4b98e7,#7b5cf0)">导出 MP4</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="pain">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-k">PAIN POINTS</div>
+      <h2>教学路上的三道坎，我们帮你跨过去</h2>
+      <p>每天面对纸质乐谱的老师们，这些场景是不是很熟悉？</p>
+    </div>
+    <div class="grid3">
+      <div class="card reveal"><div class="ico">📄</div><h3>乐谱不会动，跟练全靠脑子记</h3><p>打印的乐谱安安静静躺在那，学生一边听音乐一边低头找自己看到哪了，一遍遍走神重来。</p></div>
+      <div class="card reveal"><div class="ico">🔁</div><h3>反复段落，对点对到怀疑人生</h3><p>一段反复回两次，同一小节记两个时间点、第二遍还要跳回原位 —— 手写对表又慢又容易错。</p></div>
+      <div class="card reveal"><div class="ico">⏱</div><h3>备课两小时，上课五分钟</h3><p>每节课前手动准备谱子、录音、计时器，上完课学生拿不到能带回家的练习材料。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="app" style="padding-top:20px">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-k">THE WORKFLOW</div>
+      <h2>三步走完，十分钟备好一节课</h2>
+      <p>从导入到导出，一条清晰的工作流，没有任何多余步骤</p>
+    </div>
+    <div class="flow reveal">
+      <div class="step"><span class="arr">→</span><h4>导入曲谱</h4><p>拖入 PDF / 图片，多张自动拼接、可排序</p></div>
+      <div class="step"><span class="arr">→</span><h4>画线分节</h4><p>划横竖线切出小节，自动编号吸附对齐</p></div>
+      <div class="step"><span class="arr">→</span><h4>边听边对点</h4><p>播放音频点击小节，反复段落多点几次</p></div>
+      <div class="step"><h4>一键成片</h4><p>导出 MP4，光标跟着音乐在谱上走</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="smart">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-k">SMART & EASY</div>
+      <h2>简单到不用学，智能到不用管</h2>
+      <p>把繁琐藏进细节，把精准留给音乐</p>
+    </div>
+    <div class="grid3">
+      <div class="card reveal"><div class="ico">🎼</div><h3>会跟音乐的谱</h3><p>红色光标线在小节内匀速移动，反复段落第二遍自动跳回原小节，学生一眼看到自己该打哪里。</p></div>
+      <div class="card reveal"><div class="ico">🥁</div><h3>拍号细分 · 按拍走光标</h3><p>4/4、3/4、6/8… 在小节内画出每一拍的分线，光标按每拍真实距离走动 —— 宽拍走得慢、窄拍走得快，节奏严丝合缝。</p></div>
+      <div class="card reveal"><div class="ico">🔴</div><h3>拍点小球 · 跳跃跟拍</h3><p>光标上方一颗小球，随节拍逐拍跳动，每一拍落点都在拍子起点上，节拍感一目了然。</p></div>
+      <div class="card reveal"><div class="ico">🎨</div><h3>颜色进度 · 已播可循</h3><p>光标走过的区域覆盖同色遮罩，当前小节、整行、整谱逐节填充 —— 空拍自动跳过，进度一眼看穿。</p></div>
+      <div class="card reveal"><div class="ico">🧽</div><h3>画错即改</h3><p>橡皮擦随手擦线，撤销 / 重做（⌘Z / ⌘⇧Z）随心反悔，拍线、小节线、横线全部可微调。</p></div>
+      <div class="card reveal"><div class="ico">📱</div><h3>随身带走的课堂</h3><p>导出的视频发到学生手机，家里也能跟着谱子练，课堂在课后继续。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="guide">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-k">QUICK START</div>
+      <h2>十分钟上手</h2>
+      <p>跟着这四个步骤，把第一张动态谱做出来</p>
+    </div>
+    <div class="guide reveal">
+      <div class="g-step">
+        <div class="num">1</div>
+        <h4>导入曲谱</h4>
+        <p>打开 RhythmScore，把 <b>PDF / JPG / PNG</b> 曲谱拖进窗口。多张图片或多页 PDF 会自动拼接成一张长谱，可拖动排序。</p>
+      </div>
+      <div class="g-step">
+        <div class="num">2</div>
+        <h4>画线分节</h4>
+        <p>用<b>横线</b>标出每一行谱表的上下边界，用<b>竖线</b>切出小节（会自动吸附印刷的小节线）。需要逐拍跟随时，开启<b>拍号细分</b>，在小节内画每拍分线。</p>
+      </div>
+      <div class="g-step">
+        <div class="num">3</div>
+        <h4>音频对点</h4>
+        <p>导入伴奏音频，进入<b>对点模式</b>：播放音频，听到一个拍点就点一下对应的小节（或按 <b>回车</b>）。橙色预选框会自动指向下一小节；反复段落同小节多点几次即可。</p>
+      </div>
+      <div class="g-step">
+        <div class="num">4</div>
+        <h4>导出成片</h4>
+        <p>在右侧选择<b>连续光标</b>或<b>跳框高亮</b>，调整颜色与浓度，勾选<b>颜色进度</b>、<b>拍点小球</b>，选好比例（单行 / 9:16 / 16:9），一键导出 MP4。</p>
+      </div>
+    </div>
+    <div class="tip reveal">💡 <b>小技巧：</b>画线时开着「自动吸附」，竖线会像磁铁一样贴住印刷的小节线；画错了随时用橡皮擦擦掉，或 ⌘Z 撤销。</div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-k">FAQ</div>
+      <h2>常见问题</h2>
+    </div>
+    <div class="faq reveal">
+      <div class="faq-item">
+        <button class="faq-q">支持哪些乐器和谱子？<span class="arr">›</span></button>
+        <div class="faq-a"><p>全部支持。钢琴、吉他、贝斯、小提琴、架子鼓、尤克里里……只要是 PDF / 图片形式的谱子（五线谱、简谱、鼓谱、和弦谱）都能用。我们不识别音符，只按你画的线切小节，所以任何谱面都通用。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">导出的是什么格式？清晰度怎么样？<span class="arr">›</span></button>
+        <div class="faq-a"><p>导出 MP4 视频，支持 1080P（单行 / 16:9 / 9:16 竖屏），高画质编码，可直接发到微信、朋友圈或教学平台。也支持按小节自动切片，方便逐段讲解。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">需要什么电脑？<span class="arr">›</span></button>
+        <div class="faq-a"><p>macOS 系统的 Mac（Apple 芯片或 Intel 均可）。双击 DMG 安装即可，无需额外环境。Windows 版正在规划中。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">反复段落、跳房子怎么处理？<span class="arr">›</span></button>
+        <div class="faq-a"><p>同一小节可以打多个时间点（每遍打一次），播放时会按事件顺序依次走：第一遍走到该小节，第二遍自动跳回再走一遍。演奏序号可在事件面板里自定义微调。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">怎么购买激活码？<span class="arr">›</span></button>
+        <div class="faq-a"><p>正式发售即将开启。购买后你会收到一个激活码，在软件内输入即可解锁全部功能。具体价格与购买方式见「购买」区，或关注官网更新。</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">激活码能用在几台电脑上？<span class="arr">›</span></button>
+        <div class="faq-a"><p>一个激活码绑定一台电脑（按机器码生成），换电脑需重新购买或联系我们协助迁移。具体政策以正式发售公告为准。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="buy">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-k">PRICING</div>
+      <h2>选择适合你的版本</h2>
+      <p>价格与细则将在正式发售时确认，以下为规划</p>
+    </div>
+    <div class="buy reveal">
+      <div class="price">
+        <h3>买断版</h3>
+        <div class="p-sub">一次购买，永久使用</div>
+        <div class="p-num">¥?<small> / 台</small></div>
+        <ul>
+          <li>全部功能：拍号细分、拍点小球、颜色进度</li>
+          <li>导出无限制（无水印、无限时长）</li>
+          <li>免费升级当前大版本</li>
+        </ul>
+        <a class="btn soon" href="javascript:;">即将发售</a>
+      </div>
+      <div class="price hot">
+        <span class="p-tag">教学推荐</span>
+        <h3>教师版</h3>
+        <div class="p-sub">绑定同一台电脑，专为老师备课设计</div>
+        <div class="p-num">¥?<small> / 台</small></div>
+        <ul>
+          <li>包含买断版全部功能</li>
+          <li>授权一台固定电脑，机器码绑定</li>
+          <li>优先技术支持</li>
+        </ul>
+        <a class="btn soon" href="javascript:;">即将发售</a>
+      </div>
+    </div>
+    <p class="buy-note reveal">定价与售卖方式仍在确定中，先免费下载体验，正式发售时官网会第一时间公布。</p>
+  </div>
+</section>
+
+<section id="download" style="padding-top:10px">
+  <div class="wrap">
+    <div class="dl-card reveal">
+      <div class="sec-k" style="margin-bottom:16px">GET STARTED</div>
+      <h2 style="font-size:clamp(28px,4vw,40px)">现在就让你的乐谱动起来</h2>
+      <p style="color:var(--ink2);margin:14px 0 30px">macOS 原生应用 · 液态玻璃界面 · 白天黑夜自动跟随系统</p>
+      <a class="dl-big" href="https://github.com/145252/rhythmscore/releases/latest/download/RhythmScore-0.2.0.dmg">⬇ &nbsp;下载 RhythmScore</a>
+      <div class="dl-meta">
+        <b>当前版本 v0.2.0</b> · 支持 macOS 12+（Apple 芯片 / Intel）<br>
+        下载 DMG 后双击安装，首次打开如提示「无法验证开发者」，请在「系统设置 → 隐私与安全性」中点按「仍要打开」。
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="logo"><span class="dot">♪</span>RhythmScore</div>
+  <p>律谱 · 让每一张乐谱，都跟上音乐的心跳</p>
+  <p style="margin-top:8px">© 2026 RhythmScore · rhythmscore.cn · 为音乐教学而作</p>
+</footer>
+
+<script>
+  const io = new IntersectionObserver((es)=>{
+    es.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target) } })
+  },{threshold:.12})
+  document.querySelectorAll('.reveal').forEach(el=>io.observe(el))
+  // FAQ 手风琴
+  document.querySelectorAll('.faq-item').forEach(item=>{
+    const q = item.querySelector('.faq-q')
+    const a = item.querySelector('.faq-a')
+    q.addEventListener('click', ()=>{
+      const open = item.classList.contains('open')
+      document.querySelectorAll('.faq-item').forEach(i=>{ i.classList.remove('open'); i.querySelector('.faq-a').style.maxHeight = null })
+      if(!open){ item.classList.add('open'); a.style.maxHeight = a.scrollHeight + 'px' }
+    })
+  })
+</script>
+</body>
+</html>
