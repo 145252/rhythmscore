@@ -69,6 +69,8 @@ export interface ProjectFile {
   glassBackdrop?: boolean
   /** 玻璃背板浓度(0-100) */
   glassOpacity?: number
+  /** 导出视频是否带声音 */
+  exportAudio?: boolean
   /** 导出背景:original/white/black/transparent */
   videoBackground?: 'original' | 'white' | 'black' | 'transparent'
   /** 音频内容(随项目保存,打开后自动恢复,无需重新导入) */
