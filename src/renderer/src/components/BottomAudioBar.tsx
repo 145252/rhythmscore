@@ -338,7 +338,6 @@ export default function BottomAudioBar(): React.JSX.Element {
             <button className="btn subtle" onClick={clearAudio}>
               移除音频
             </button>
-            {markedCount > 0 && <span className="count-pill">{markedCount} 点</span>}
           </div>
         </>
       )}
