@@ -5,7 +5,7 @@ import { decodeWaveform, formatTime, getAudio } from '../audioPlayer'
 import { getMeasureCount } from '../geometry'
 import { readAsDataURL } from '../base64'
 
-const WAVE_H = 46
+const WAVE_H = 38
 
 /** 底部音频播放条:横贯窗口底部,波形 + 播放控制 + 对点(音乐播放器风格) */
 export default function BottomAudioBar(): React.JSX.Element {
@@ -96,7 +96,7 @@ export default function BottomAudioBar(): React.JSX.Element {
     setAudioDuration(0)
     setCurrentTime(0)
     setPlaying(false)
-    void decodeWaveform(audioDataUrl, 900).then((peaks) => setWaveform(peaks))
+    void decodeWaveform(audioDataUrl, 2600).then((peaks) => setWaveform(peaks))
   }, [audioDataUrl, audio, setAudioDuration, setCurrentTime, setPlaying, setWaveform])
 
   // 绑定播放器事件
@@ -189,18 +189,18 @@ export default function BottomAudioBar(): React.JSX.Element {
 
     if (!audioDataUrl || !waveformPeaks || !audioDuration) {
       // 装饰假波形
-      const fake = 96
-      ctx.fillStyle = 'rgba(120,140,180,0.18)'
+      const fake = 220
+      ctx.fillStyle = 'rgba(120,140,180,0.22)'
       for (let i = 0; i < fake; i++) {
         const h = 6 + Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6)) * (WAVE_H * 0.75)
-        ctx.fillRect((i / fake) * W, (WAVE_H - h) / 2, Math.max(1, W / fake - 1), h)
+        ctx.fillRect((i / fake) * W, (WAVE_H - h) / 2, Math.max(0.6, W / fake - 0.4), h)
       }
       return
     }
 
     const n = waveformPeaks.length
     const bw = W / n
-    ctx.fillStyle = '#9aa3ad'
+    ctx.fillStyle = '#a8b2c0'
     for (let i = 0; i < n; i++) {
       const h = Math.max(2, waveformPeaks[i] * WAVE_H * 0.92)
       ctx.fillRect(i * bw, (WAVE_H - h) / 2, Math.max(1, bw - 0.5), h)

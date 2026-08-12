@@ -1667,7 +1667,7 @@ body.dark .lic-head {
 .app{display:flex;flex-direction:column;height:100vh}
 .app-body{flex:1;min-height:0}
 .bottom-bar{
-  flex:none;height:96px;margin:0 10px 10px;padding:10px 14px;border-radius:16px;
+  flex:none;height:72px;margin:0;padding:8px 12px;border-radius:14px;border-radius:16px;
   display:flex;align-items:center;gap:16px;
   background:linear-gradient(90deg,rgba(255,255,255,.5),rgba(255,255,255,.2));
   -webkit-backdrop-filter:blur(20px) saturate(1.8);backdrop-filter:blur(20px) saturate(1.8);
@@ -1710,3 +1710,17 @@ body.dark .lic-head {
 .bar-controls .cur-measure{font-size:13px;color:var(--ink);min-width:52px;text-align:center;white-space:nowrap}
 .bar-controls .marking-hint{color:#e09a1f;font-size:12px}
 .bar-controls .marked-count{font-size:12px;color:var(--ink3);white-space:nowrap}
+
+/* 底部播放条:黑夜模式适配 */
+body.dark .bottom-bar{
+  background:linear-gradient(90deg,rgba(28,36,60,.78),rgba(20,26,46,.66));
+  border-color:rgba(255,255,255,.1);
+  box-shadow:0 8px 28px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.06);
+}
+body.dark .bar-empty{border-color:rgba(150,170,220,.32)}
+body.dark .bar-empty:hover{background:rgba(90,120,220,.1);border-color:rgba(110,150,240,.5)}
+body.dark .bar-empty-hint{color:#9fb0d0}
+body.dark .bar-controls .cur-measure{color:#e8eefb}
+body.dark .bar-controls .marked-count{color:#7d89ab}
+body.dark .bar-divider{background:rgba(160,180,220,.2)}
+body.dark .wave-time{color:#7d89ab;text-shadow:none}
