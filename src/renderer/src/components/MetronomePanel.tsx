@@ -24,16 +24,18 @@ export default function MetronomePanel(): React.JSX.Element {
 
   const [bpm, setBpm] = useState(100)
   const [sound, setSound] = useState<MetronomeSound>('wood')
+  const [prepBeat, setPrepBeat] = useState(true)
   const [busy, setBusy] = useState(false)
 
   const measures = score ? getMeasureCount(hLines, vLines, score.width) : 0
+  const prep = prepBeat ? 1 : 0
 
   const generate = async (): Promise<void> => {
     if (!score || measures <= 0 || busy) return
     setBusy(true)
     try {
-      // 音频含 1 小节预备预卷 + 正文小节
-      const url = await generateMetronomeAudio({ bpm, beatsPerMeasure, measures, prepMeasures: 1, sound })
+      // 预备拍开:多生成 1 小节预卷;关:仅正文小节
+      const url = await generateMetronomeAudio({ bpm, beatsPerMeasure, measures, prepMeasures: prep, sound })
       setAudio(`节拍器 ${bpm}BPM`, url)
     } catch {
       /* 忽略 */
@@ -42,20 +44,33 @@ export default function MetronomePanel(): React.JSX.Element {
     }
   }
 
-  /** 自动对点:节拍器速度精确,每小节时间 = 小节号 × 每小节时长(预备小节占开头 1 小节) */
+  /** 自动对点:预备拍开时第 i 小节时间 = i×每小节时长(预备占开头);关时第 i 小节 = (i-1)×每小节时长 */
   const autoMark = (): void => {
     if (measures <= 0) return
     const beatDur = 60 / bpm
     const measureDur = beatsPerMeasure * beatDur
     const events = []
     for (let i = 1; i <= measures; i++) {
-      events.push({ n: i, time: i * measureDur, base: i * measureDur })
+      const t = (prep + i - 1) * measureDur
+      events.push({ n: i, time: t, base: t })
     }
     setMarkEvents(events)
   }
 
   return (
     <CollapseCard title="节拍器">
+      <label className="marking-toggle">
+        <span>预备拍(开头预留 1 小节)</span>
+        <input
+          type="checkbox"
+          checked={prepBeat}
+          onChange={(e) => setPrepBeat(e.target.checked)}
+        />
+        <span className="toggle-track">
+          <span className="toggle-thumb" />
+        </span>
+      </label>
+
       <div className="line-width-row">
         <span>速度</span>
         <input
@@ -83,7 +98,7 @@ export default function MetronomePanel(): React.JSX.Element {
 
       <p className="hint">
         {measures > 0
-          ? `当前 ${measures} 小节 × ${beatsPerMeasure} 拍。生成音频含 1 小节预备拍(开头预卷);自动对点按 ${bpm} BPM 精确计算每小节时间。`
+          ? `当前 ${measures} 小节 × ${beatsPerMeasure} 拍。${prepBeat ? '含 1 小节预备拍,共生成 ' + (measures + 1) + ' 小节音频。' : '不含预备拍,共生成 ' + measures + ' 小节音频。'}`
           : '请先划分小节(画横线/竖线),再使用节拍器。'}
       </p>
 
