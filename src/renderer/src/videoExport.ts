@@ -242,8 +242,10 @@ export function renderFrame(ctx: CanvasRenderingContext2D, W: number, H: number,
   const offsetX = smoothX
   const offsetY = smoothY
 
-  // ---- 背景(透明通道时不填充,保留 alpha) ----
-  if (data.background !== 'transparent') {
+  // ---- 背景(透明通道:清空画布防残影堆叠;其他:填充背景色) ----
+  if (data.background === 'transparent') {
+    ctx.clearRect(0, 0, W, H)
+  } else {
     ctx.fillStyle = data.background === 'black' ? '#000' : data.background === 'white' ? '#fff' : '#f4f4f1'
     ctx.fillRect(0, 0, W, H)
   }
