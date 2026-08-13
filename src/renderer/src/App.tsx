@@ -16,7 +16,7 @@ export default function App(): React.JSX.Element {
 
   // 开发者测试解锁:dev 模式或 RS_TEST_UNLOCK=1 时,启动即视为已激活(仅测试用)
   useEffect(() => {
-    void window.api.isTestUnlocked().then((ok) => {
+    void window.api?.isTestUnlocked?.().then((ok) => {
       if (ok) setLicensed(true, null)
     })
   }, [setLicensed])
