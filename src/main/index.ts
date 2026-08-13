@@ -256,10 +256,16 @@ ipcMain.handle('project:open', async () => {
 })
 
 // ---------- IPC: 授权(机器码 / 激活码验证) ----------
+// 开发者测试解锁:dev 模式 或 启动时设置 RS_TEST_UNLOCK=1 时,视为已激活(仅测试用,正式包默认关闭)
+const testUnlock = isDev || process.env.RS_TEST_UNLOCK === '1'
+
 ipcMain.handle('license:get-machine', () => machineCode())
+
+ipcMain.handle('license:is-unlocked', () => testUnlock)
 
 ipcMain.handle('license:activate', (_e, key: string) => {
   const machine = machineCode()
+  if (testUnlock) return { ok: true, machine }
   const ok = verifyLicense(String(key ?? ''), machine)
   return { ok, machine }
 })

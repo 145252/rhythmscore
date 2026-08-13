@@ -45,6 +45,8 @@ const api = {
   /** 验证激活码:成功返回 ok=true,失败 ok=false */
   activateLicense: (key: string): Promise<{ ok: boolean; machine: string }> =>
     ipcRenderer.invoke('license:activate', key),
+  /** 是否开发者测试解锁(dev 模式或 RS_TEST_UNLOCK=1) */
+  isTestUnlocked: (): Promise<boolean> => ipcRenderer.invoke('license:is-unlocked'),
   /** 透明导出:开始帧序列会话(返回临时目录 id) */
   beginAlphaFrames: (): Promise<string> => ipcRenderer.invoke('video:begin-frames'),
   writeAlphaFrame: (dirId: string, index: number, buffer: ArrayBuffer): Promise<void> =>
