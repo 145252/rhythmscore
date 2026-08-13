@@ -409,10 +409,10 @@ export default function RightPanel(): React.JSX.Element {
         </p>
 
         <p className="label">视频背景</p>
-        <div className="ratio-grid">
+        <div className="bg-grid">
           {(
             [
-              ['original', '原样'],
+              ['original', '原图'],
               ['transparent', '透明通道']
             ] as const
           ).map(([v, label]) => (

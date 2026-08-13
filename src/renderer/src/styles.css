@@ -1759,3 +1759,7 @@ body.dark .wave-hint{color:rgba(170,190,230,.7);text-shadow:none}
 .bar-controls .marking-toggle.disabled{opacity:.45}
 .bar-controls .measure-nav.disabled{opacity:.45}
 
+
+/* 视频背景:2 个选项横向展开,文字不挤 */
+.bg-grid{display:flex;gap:6px;margin-bottom:12px}
+.bg-grid .chip{flex:1;white-space:nowrap;padding:5px 10px}
