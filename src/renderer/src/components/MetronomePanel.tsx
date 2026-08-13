@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useStore } from '../store'
-import { generateMetronomeAudio, type MetronomeSound } from '../metronome'
+import { generateMetronomeAudio, METRONOME_LEAD_IN, type MetronomeSound } from '../metronome'
 import { getMeasureCount } from '../geometry'
 import CollapseCard from './CollapseCard'
 
@@ -51,7 +51,7 @@ export default function MetronomePanel(): React.JSX.Element {
     const measureDur = beatsPerMeasure * beatDur
     const events = []
     for (let i = 1; i <= measures; i++) {
-      const t = (prep + i - 1) * measureDur
+      const t = METRONOME_LEAD_IN + (prep + i - 1) * measureDur
       events.push({ n: i, time: t, base: t })
     }
     setMarkEvents(events)

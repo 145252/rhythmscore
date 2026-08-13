@@ -5,6 +5,9 @@
 
 export type MetronomeSound = 'wood' | 'beep' | 'digital'
 
+/** 节拍器音频开头静音缓冲(秒):避免第一拍 click 被视频转码的编码器启动延迟吞掉 */
+export const METRONOME_LEAD_IN = 0.06
+
 export interface MetronomeOptions {
   bpm: number
   beatsPerMeasure: number
@@ -84,12 +87,12 @@ function bufferToWavDataUrl(buffer: AudioBuffer): Promise<string> {
   })
 }
 
-/** 生成节拍器音频(含预备小节预卷,总时长 = (prep + measures) 小节) */
+/** 生成节拍器音频(含预备小节预卷 + 开头静音缓冲,总时长 = leadIn + (prep + measures) 小节) */
 export async function generateMetronomeAudio(opts: MetronomeOptions): Promise<string> {
   const beatDur = 60 / opts.bpm
   const prep = opts.prepMeasures ?? 1
   const totalBeats = Math.max(1, Math.round((prep + opts.measures) * opts.beatsPerMeasure))
-  const duration = totalBeats * beatDur + 0.3
+  const duration = METRONOME_LEAD_IN + totalBeats * beatDur + 0.3
   const sampleRate = 44100
   const Ctx =
     window.OfflineAudioContext ??
@@ -97,7 +100,7 @@ export async function generateMetronomeAudio(opts: MetronomeOptions): Promise<st
   const ctx = new Ctx(2, Math.ceil(duration * sampleRate), sampleRate)
   for (let i = 0; i < totalBeats; i++) {
     const accent = i % opts.beatsPerMeasure === 0
-    scheduleClick(ctx, i * beatDur, accent, opts.sound)
+    scheduleClick(ctx, METRONOME_LEAD_IN + i * beatDur, accent, opts.sound)
   }
   const rendered = await ctx.startRendering()
   return await bufferToWavDataUrl(rendered)
