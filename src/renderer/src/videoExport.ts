@@ -588,8 +588,8 @@ export async function recordVideo(
   const audio = getAudio()
   audio.currentTime = 0
 
-  // 30fps 捕获:高清全量绘制下比 60fps 稳定得多,光标不掉帧(视频标准帧率,视觉依然平滑)
-  const videoStream = canvas.captureStream(30)
+  // 60fps 捕获:标线/小球运动更顺滑;谱面静态区域无变化,码率压力小(对齐仍由时间精确计算)
+  const videoStream = canvas.captureStream(60)
   const withCapture = audio as HTMLAudioElement & { captureStream?: () => MediaStream }
   const audioStream =
     !data.muted && typeof withCapture.captureStream === 'function' ? withCapture.captureStream() : null
@@ -619,8 +619,8 @@ export async function recordVideo(
     let last = 0
     const loop = (ts: number): void => {
       const t = audio.currentTime
-      if (ts - last >= 33) {
-        // 30fps 渲染(与录制帧率一致,稳定不掉帧)
+      if (ts - last >= 16) {
+        // 60fps 渲染(与录制帧率一致)
         last = ts
         renderFrame(ctx, W, H, t, data)
       }
@@ -690,7 +690,7 @@ export async function recordVideoAlpha(
   audio.currentTime = 0
 
   const dirId = await window.api!.beginAlphaFrames()
-  const FPS = 24
+  const FPS = 30
   const times: number[] = [] // 每帧对应的真实播放时间(VFR 编码用)
   const duration = data.totalDuration
   if (duration <= 0) throw new Error('音频时长无效')
