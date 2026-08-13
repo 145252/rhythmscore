@@ -34,8 +34,7 @@ interface WorkbuddyApi {
   onMenuAction: (cb: (action: 'open-project' | 'save-project') => void) => void
   getMachineCode: () => Promise<string>
   activateLicense: (key: string) => Promise<{ ok: boolean; machine: string }>
-  isTestUnlocked: () => Promise<boolean>
-  /** 透明导出:开始帧序列会话(返回临时目录 id) */
+  isTestUnlocked: () => Promise<boolean>  /** 透明导出:开始帧序列会话(返回临时目录 id) */
   beginAlphaFrames: () => Promise<string>
   writeAlphaFrame: (dirId: string, index: number, buffer: ArrayBuffer) => Promise<void>
   finishAlphaVideo: (
@@ -47,3 +46,6 @@ interface WorkbuddyApi {
 interface Window {
   api?: WorkbuddyApi
 }
+
+/** 编译时注入:测试解锁开关(RS_TEST_UNLOCK=1 打包为 true,正式包为 false) */
+declare const __TEST_UNLOCK__: boolean

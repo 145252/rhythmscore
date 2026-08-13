@@ -1763,3 +1763,7 @@ body.dark .wave-hint{color:rgba(170,190,230,.7);text-shadow:none}
 /* 视频背景:2 个选项横向展开,文字不挤 */
 .bg-grid{display:flex;gap:6px;margin-bottom:12px}
 .bg-grid .chip{flex:1;white-space:nowrap;padding:5px 10px}
+
+/* 测试专用 PRO 开关(仅测试包渲染) */
+.topbar-actions .test-pro-toggle{flex-direction:row;align-items:center;gap:6px;margin-right:4px;padding:0 8px;height:30px;border:1px dashed rgba(230,150,30,.5);border-radius:8px}
+.topbar-actions .test-pro-toggle>span{font-size:12px;color:#c77d12}

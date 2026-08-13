@@ -12,14 +12,6 @@ export default function App(): React.JSX.Element {
   const theme = useStore((s) => s.theme)
   const licenseModalOpen = useStore((s) => s.licenseModalOpen)
   const setLicenseModalOpen = useStore((s) => s.setLicenseModalOpen)
-  const setLicensed = useStore((s) => s.setLicensed)
-
-  // 开发者测试解锁:dev 模式或 RS_TEST_UNLOCK=1 时,启动即视为已激活(仅测试用)
-  useEffect(() => {
-    void window.api?.isTestUnlocked?.().then((ok) => {
-      if (ok) setLicensed(true, null)
-    })
-  }, [setLicensed])
 
   // 主题:system 跟随系统(监听系统切换自动变化),手动 light/dark 直接应用
   useEffect(() => {

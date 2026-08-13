@@ -98,6 +98,19 @@ export default function TopBar(): React.JSX.Element {
         </div>
       </div>
       <div className="topbar-actions">
+        {__TEST_UNLOCK__ && (
+          <label className="marking-toggle test-pro-toggle" title="测试专用:临时切换专业版状态(正式包不包含此开关)">
+            <span>测试PRO</span>
+            <input
+              type="checkbox"
+              checked={licensed}
+              onChange={(e) => setLicensed(e.target.checked, null)}
+            />
+            <span className="toggle-track">
+              <span className="toggle-thumb" />
+            </span>
+          </label>
+        )}
         <button
           className={`btn pro-topbar ${licensed ? 'pro-active' : ''}`}
           title={licensed ? '专业版已激活,点击查看' : '升级专业版:去除导出水印、解锁全高清'}

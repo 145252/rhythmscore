@@ -19,6 +19,7 @@ export default defineConfig({
       outDir: 'out/renderer',
       rollupOptions: { input: resolve(__dirname, 'src/renderer/index.html') }
     },
+    define: { __TEST_UNLOCK__: JSON.stringify(TEST_UNLOCK) },
     plugins: [react()]
   }
 })
