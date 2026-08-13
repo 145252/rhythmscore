@@ -393,8 +393,6 @@ export default function RightPanel(): React.JSX.Element {
 
       </CollapseCard>
 
-      <div className="section-gap" />
-
       <CollapseCard title="生成视频">
         <p className="label">画面比例</p>
         <div className="ratio-grid">
