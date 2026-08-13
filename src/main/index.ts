@@ -5,6 +5,9 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypt
 import { exportVideo, encodeAlphaMov, type SegmentSpec } from './ffmpeg'
 import { machineCode, verifyLicense, verifyIntegrity } from './license'
 
+// 编译时注入:测试解锁开关(RS_TEST_UNLOCK=1 打包才为 true,正式包为 false 且被 tree-shake)
+declare const __TEST_UNLOCK__: boolean
+
 const isDev = !!process.env.ELECTRON_RENDERER_URL
 
 // 在受限/容器化环境中 Chromium 沙箱无法初始化(Operation not permitted),
@@ -256,8 +259,8 @@ ipcMain.handle('project:open', async () => {
 })
 
 // ---------- IPC: 授权(机器码 / 激活码验证) ----------
-// 开发者测试解锁:dev 模式 或 启动时设置 RS_TEST_UNLOCK=1 时,视为已激活(仅测试用,正式包默认关闭)
-const testUnlock = isDev || process.env.RS_TEST_UNLOCK === '1'
+// 开发者测试解锁:dev 模式 或 测试包(RS_TEST_UNLOCK=1 编译)视为已激活;正式包 __TEST_UNLOCK__ 恒为 false
+const testUnlock = isDev || __TEST_UNLOCK__
 
 ipcMain.handle('license:get-machine', () => machineCode())
 
