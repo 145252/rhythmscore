@@ -388,6 +388,7 @@ body {
 
 .topbar-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex: none;
 }
@@ -1765,5 +1766,5 @@ body.dark .wave-hint{color:rgba(170,190,230,.7);text-shadow:none}
 .bg-grid .chip{flex:1;white-space:nowrap;padding:5px 10px}
 
 /* 测试专用 PRO 开关(仅测试包渲染) */
-.topbar-actions .test-pro-toggle{flex-direction:row;align-items:center;gap:6px;margin-right:4px;padding:0 8px;height:30px;border:1px dashed rgba(230,150,30,.5);border-radius:8px}
-.topbar-actions .test-pro-toggle>span{font-size:12px;color:#c77d12}
+.topbar-actions .test-pro-toggle{flex-direction:row;align-items:center;justify-content:flex-start;gap:6px;margin:0!important;padding:0 8px;height:30px;flex:none;border:1px dashed rgba(230,150,30,.5);border-radius:8px;font-size:12px}
+.topbar-actions .test-pro-toggle>span{font-size:12px;color:#c77d12;white-space:nowrap}
